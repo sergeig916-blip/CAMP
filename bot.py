@@ -5,24 +5,18 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # ========== КОНФИГУРАЦИЯ ==========
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-if not BOT_TOKEN:
-    BOT_TOKEN = "ВАШ_ТОКЕН_ЗДЕСЬ"  # Замени на свой от @BotFather
+BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 
 PORT = int(os.environ.get("PORT", 8080))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "https://web-production-bd8b.up.railway.app")
 
-# ========== ДАННЫЕ (ВСТАВЬ СВОИ) ==========
-# Ссылка на PDF с офертой (прямая ссылка на файл или короткая)
-PDF_LINK = "https://github.com/твой-логин/название-репозитория/raw/main/oferta.pdf"
+# ========== ДАННЫЕ ==========
+PDF_LINK = "https://clck.ru/3RuVTQ"  # твоя короткая ссылка на PDF
+QR_LINK = "https://github.com/твой-логин/название-репозитория/raw/main/qr.png"  # ЗАМЕНИ на свою ссылку QR
 
-# Ссылка на картинку с QR-кодом (прямая ссылка)
-QR_LINK = "https://github.com/твой-логин/название-репозитория/raw/main/qr.png"
-
-# Текст инструкции после оплаты
 INSTRUCTION = "Оплатите по QR‑коду и отправьте скриншот менеджеру.\nСпасибо за выбор нашего кэмпа! 🌟"
 
-# Названия 5 кэмпов (можно менять)
+# Названия 5 кэмпов (можешь поменять текст)
 CAMPS = [
     {"name": "🏕️ КЭМП 1 — Название", "id": "camp1"},
     {"name": "🏕️ КЭМП 2 — Название", "id": "camp2"},
@@ -71,10 +65,8 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
         camp_id = data.split(":")[1]
         camp_name = next((c["name"] for c in CAMPS if c["id"] == camp_id), "Выбранный кэмп")
         
-        # Сохраняем выбранный кэмп в данных пользователя (на всякий случай)
         context.user_data["selected_camp"] = camp_name
         
-        # Текст с офертой
         text = (
             f"<b>Вы выбрали:</b> {camp_name}\n\n"
             f"📄 <a href='{PDF_LINK}'>Оферта (PDF)</a>\n\n"
@@ -93,17 +85,14 @@ async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # Убираем кнопки под предыдущим сообщением
     await query.edit_message_reply_markup(reply_markup=None)
     
-    # Отправляем QR-код
     await query.message.reply_photo(
         photo=QR_LINK,
         caption=f"<b>🗳️ QR‑код для оплаты</b>\n\n{INSTRUCTION}",
         parse_mode='HTML'
     )
     
-    # Дополнительное сообщение
     await query.message.reply_text(
         "✅ Спасибо! Если остались вопросы — напишите нам.",
         parse_mode='HTML'
@@ -128,7 +117,6 @@ def main():
     try:
         application = Application.builder().token(BOT_TOKEN).build()
         
-        # Регистрируем обработчики
         application.add_handler(CommandHandler('start', start))
         application.add_handler(CallbackQueryHandler(handle_camp_selection, pattern='^camp:'))
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))
@@ -136,7 +124,6 @@ def main():
         
         logger.info("✅ Приложение создано")
         
-        # Настройка webhook
         webhook_url = f"{WEBHOOK_URL.rstrip('/')}/{BOT_TOKEN}"
         logger.info(f"🌐 Webhook: {webhook_url}")
         

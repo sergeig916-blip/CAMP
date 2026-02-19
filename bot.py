@@ -7,16 +7,12 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 
-PORT = int(os.environ.get("PORT", 8080))
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "https://web-production-bd8b.up.railway.app")
-
 # ========== ДАННЫЕ ==========
-PDF_LINK = "https://clck.ru/3RuVTQ"  # твоя короткая ссылка на PDF
-QR_LINK = "https://github.com/твой-логин/название-репозитория/raw/main/qr.png"  # ЗАМЕНИ на свою ссылку QR
+PDF_LINK = "https://clck.ru/3RuVTQ"
+QR_LINK = "https://github.com/твой-логин/название-репозитория/raw/main/qr.png"  # ЗАМЕНИ
 
 INSTRUCTION = "Оплатите по QR‑коду и отправьте скриншот менеджеру.\nСпасибо за выбор нашего кэмпа! 🌟"
 
-# Названия 5 кэмпов (можешь поменять текст)
 CAMPS = [
     {"name": "🏕️ КЭМП 1 — Название", "id": "camp1"},
     {"name": "🏕️ КЭМП 2 — Название", "id": "camp2"},
@@ -35,20 +31,18 @@ logger = logging.getLogger(__name__)
 
 # ========== КЛАВИАТУРЫ ==========
 def get_camps_keyboard():
-    """Кнопки для выбора кэмпа"""
     keyboard = []
     for camp in CAMPS:
         keyboard.append([InlineKeyboardButton(camp["name"], callback_data=f"camp:{camp['id']}")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_agree_keyboard():
-    """Кнопка 'Согласен'"""
     keyboard = [[InlineKeyboardButton("✅ СОГЛАСЕН", callback_data="agree")]]
     return InlineKeyboardMarkup(keyboard)
 
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /start — показывает кнопки с кэмпами"""
+    """Команда /start"""
     await update.message.reply_text(
         "🏕️ <b>Выберите КЭМП, который вас интересует:</b>",
         parse_mode='HTML',
@@ -56,7 +50,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка выбора кэмпа — показывает оферту и кнопку 'Согласен'"""
+    """Выбор кэмпа → оферта + кнопка согласия"""
     query = update.callback_query
     await query.answer()
 
@@ -81,7 +75,7 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
 async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка нажатия 'Согласен' — отправляет QR и инструкцию"""
+    """Согласие → QR + инструкция"""
     query = update.callback_query
     await query.answer()
     
@@ -109,9 +103,9 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         pass
 
-# ========== ОСНОВНАЯ ФУНКЦИЯ ==========
+# ========== ЗАПУСК ==========
 def main():
-    """Запуск бота на Railway"""
+    """Запуск бота с polling (как в рабочем боте)"""
     logger.info("🚀 Запуск бота (кэмпы)...")
     
     try:
@@ -122,18 +116,11 @@ def main():
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))
         application.add_error_handler(error_handler)
         
-        logger.info("✅ Приложение создано")
+        logger.info("✅ Бот запущен в режиме polling!")
+        logger.info("🤖 Бот готов к работе!")
         
-        webhook_url = f"{WEBHOOK_URL.rstrip('/')}/{BOT_TOKEN}"
-        logger.info(f"🌐 Webhook: {webhook_url}")
-        
-        application.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            url_path=BOT_TOKEN,
-            webhook_url=webhook_url,
-            drop_pending_updates=True
-        )
+        # ✅ ВАЖНО: используем polling, а не webhook!
+        application.run_polling(drop_pending_updates=True)
         
     except Exception as e:
         logger.error(f"💥 Критическая ошибка: {e}")

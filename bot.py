@@ -8,8 +8,8 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 
 # ========== ДАННЫЕ ==========
-PDF_LINK = "https://clck.ru/3RuVTQ"
-QR_LINK = "https://github.com/твой-логин/название-репозитория/raw/main/qr.png"  # ЗАМЕНИ
+PDF_LINK = "https://clck.ru/3RuZKG"
+QR_LINK = "https://clck.ru/3RuZZA"
 
 INSTRUCTION = "Оплатите по QR‑коду и отправьте скриншот менеджеру.\nСпасибо за выбор нашего кэмпа! 🌟"
 

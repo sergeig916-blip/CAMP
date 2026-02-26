@@ -7,8 +7,8 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 
-# 🛡️ ВАШ ID
-ADMIN_CHAT_ID = 246014045
+# 🛡️ ВАШ ID (исправлен на 42038232)
+ADMIN_CHAT_ID = 42038232
 
 # Состояния для ConversationHandler
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, RECEIPT_PHOTO) = range(4)
@@ -621,6 +621,7 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 caption=caption
             )
         
+        # Убрано предложение связаться с админом после оплаты
         await update.message.reply_text(
             "✅ Спасибо! Чек получен и отправлен администратору.\n"
             "🌟 Спасибо, что выбираете Школа мяча 🌟"
@@ -631,16 +632,6 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "✅ Спасибо! Ваш чек получен.\n"
             "🌟 Спасибо, что выбираете Школа мяча 🌟"
         )
-    
-    # После оплаты предлагаем связаться с админом
-    contact_keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("📞 Связаться с администратором", callback_data="contact_admin")
-    ]])
-    
-    await update.message.reply_text(
-        "Если у вас остались вопросы, вы можете связаться с администратором:",
-        reply_markup=contact_keyboard
-    )
     
     context.user_data.clear()
     return ConversationHandler.END

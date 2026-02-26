@@ -6,7 +6,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
-ADMIN_USERNAME = "@Dmitry_Kh_87"  # username администратора
+ADMIN_USERNAME = "@Glebov_Sergei_8"  # username администратора
 
 # Состояния для ConversationHandler
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, RECEIPT_PHOTO) = range(4)

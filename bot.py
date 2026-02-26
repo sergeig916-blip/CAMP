@@ -6,7 +6,9 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
-ADMIN_USERNAME = "@Glebov_Sergei_8"  # username администратора
+
+# 🛡️ ВАШ ID ПОЛУЧЕН ЧЕРЕЗ @userinfobot
+ADMIN_CHAT_ID = 246014045  # ваш цифровой ID
 
 # Состояния для ConversationHandler
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, RECEIPT_PHOTO) = range(4)
@@ -60,29 +62,39 @@ CAMPS = [
     }
 ]
 
-# ========== УСЛУГИ ==========
+# ========== УСЛУГИ С РАЗБИВКОЙ ПО СТРОКАМ ==========
+def format_service_text(name, price):
+    """Форматирует текст услуги для кнопки с переносом строк"""
+    # Разбиваем длинные названия на 2 строки
+    if len(name) > 30:
+        # Ищем место для переноса
+        parts = name.split(' - ')
+        if len(parts) > 1:
+            return f"{parts[0]}\n{parts[1]} - {price}"
+    return f"{name} - {price}"
+
 SERVICES = {
     "camp": {
         "name": "🏕️ КЭМП",
         "options": [
-            {"name": "10 дней - смена 1", "price": "69 990р.", "id": "camp_10_days_1"},
-            {"name": "10 дней - смена 7", "price": "69 990р.", "id": "camp_10_days_7"},
-            {"name": "1 день", "price": "7 900р.", "id": "camp_1_day"}
+            {"name": "10 дней - смена 1", "price": "69 990р.", "id": "camp_10_days_1", "short": "10 дней (смена 1)"},
+            {"name": "10 дней - смена 7", "price": "69 990р.", "id": "camp_10_days_7", "short": "10 дней (смена 7)"},
+            {"name": "1 день", "price": "7 900р.", "id": "camp_1_day", "short": "1 день"}
         ]
     },
     "training": {
         "name": "⚽ ТРЕНИРОВКИ",
         "options": [
-            {"name": "Тренировка - 1 занятие", "price": "1 890р.", "id": "training_1"},
-            {"name": "Абонемент - 5 занятий", "price": "7 450р. (1 490р./занятие)", "id": "training_5"},
-            {"name": "Абонемент - 10 занятий", "price": "12 900р. (1 290р./занятие)", "id": "training_10"}
+            {"name": "Тренировка - 1 занятие", "price": "1 890р.", "id": "training_1", "short": "1 тренировка"},
+            {"name": "Абонемент - 5 занятий", "price": "7 450р. (1 490р./занятие)", "id": "training_5", "short": "Абонемент 5 занятий"},
+            {"name": "Абонемент - 10 занятий", "price": "12 900р. (1 290р./занятие)", "id": "training_10", "short": "Абонемент 10 занятий"}
         ]
     },
     "other": {
         "name": "📦 ПРОЧЕЕ",
         "options": [
-            {"name": "Оплата после пробного дня", "price": "65 000р.", "id": "trial_day"},
-            {"name": "Форма", "price": "4 500р.", "id": "uniform"}
+            {"name": "Оплата после пробного дня", "price": "65 000р.", "id": "trial_day", "short": "Пробный день"},
+            {"name": "Форма", "price": "4 500р.", "id": "uniform", "short": "Форма"}
         ]
     }
 }
@@ -92,18 +104,18 @@ SOCHI_SERVICES = {
     "camp": {
         "name": "🏕️ КЭМП в Сочи",
         "options": [
-            {"name": "Спортсмен (без сопровождения) - Май 02-08", "price": "89 990р.", "id": "sochi_sportsman_may"},
-            {"name": "Спортсмен (без сопровождения) - Июнь 19-27", "price": "114 990р.", "id": "sochi_sportsman_june"},
-            {"name": "Спортсмен (без сопровождения) - Июль 4-11", "price": "102 490р.", "id": "sochi_sportsman_july"},
-            {"name": "Спортсмен (без сопровождения) - Август 1-8", "price": "102 490р.", "id": "sochi_sportsman_august"},
-            {"name": "Спортсмен + родитель - Май 02-08", "price": "139 990р.", "id": "sochi_family_may"},
-            {"name": "Спортсмен + родитель - Июнь 19-27", "price": "183 990р.", "id": "sochi_family_june"},
-            {"name": "Спортсмен + родитель - Июль 4-11", "price": "161 990р.", "id": "sochi_family_july"},
-            {"name": "Спортсмен + родитель - Август 1-8", "price": "161 990р.", "id": "sochi_family_august"},
-            {"name": "Сопровождающий - Май 02-08", "price": "59 990р.", "id": "sochi_accompanist_may"},
-            {"name": "Сопровождающий - Июнь 19-27", "price": "77 990р.", "id": "sochi_accompanist_june"},
-            {"name": "Сопровождающий - Июль 4-11", "price": "68 990р.", "id": "sochi_accompanist_july"},
-            {"name": "Сопровождающий - Август 1-8", "price": "68 990р.", "id": "sochi_accompanist_august"}
+            {"name": "Спортсмен (без сопровождения) - Май 02-08", "price": "89 990р.", "id": "sochi_sportsman_may", "short": "Спортсмен (Май 02-08)"},
+            {"name": "Спортсмен (без сопровождения) - Июнь 19-27", "price": "114 990р.", "id": "sochi_sportsman_june", "short": "Спортсмен (Июнь 19-27)"},
+            {"name": "Спортсмен (без сопровождения) - Июль 4-11", "price": "102 490р.", "id": "sochi_sportsman_july", "short": "Спортсмен (Июль 4-11)"},
+            {"name": "Спортсмен (без сопровождения) - Август 1-8", "price": "102 490р.", "id": "sochi_sportsman_august", "short": "Спортсмен (Август 1-8)"},
+            {"name": "Спортсмен + родитель - Май 02-08", "price": "139 990р.", "id": "sochi_family_may", "short": "Спортсмен+родитель (Май)"},
+            {"name": "Спортсмен + родитель - Июнь 19-27", "price": "183 990р.", "id": "sochi_family_june", "short": "Спортсмен+родитель (Июнь)"},
+            {"name": "Спортсмен + родитель - Июль 4-11", "price": "161 990р.", "id": "sochi_family_july", "short": "Спортсмен+родитель (Июль)"},
+            {"name": "Спортсмен + родитель - Август 1-8", "price": "161 990р.", "id": "sochi_family_august", "short": "Спортсмен+родитель (Август)"},
+            {"name": "Сопровождающий - Май 02-08", "price": "59 990р.", "id": "sochi_accompanist_may", "short": "Сопровождающий (Май)"},
+            {"name": "Сопровождающий - Июнь 19-27", "price": "77 990р.", "id": "sochi_accompanist_june", "short": "Сопровождающий (Июнь)"},
+            {"name": "Сопровождающий - Июль 4-11", "price": "68 990р.", "id": "sochi_accompanist_july", "short": "Сопровождающий (Июль)"},
+            {"name": "Сопровождающий - Август 1-8", "price": "68 990р.", "id": "sochi_accompanist_august", "short": "Сопровождающий (Август)"}
         ]
     }
 }
@@ -134,12 +146,16 @@ def get_service_categories_keyboard():
 def get_services_keyboard(category, is_sochi=False):
     keyboard = []
     services = SOCHI_SERVICES if is_sochi else SERVICES
+    
     if category in services:
         for option in services[category]["options"]:
+            # Используем короткое название для кнопки, полное сохраняем в данных
+            button_text = option.get("short", option["name"])
             keyboard.append([InlineKeyboardButton(
-                f"{option['name']} - {option['price']}", 
+                f"{button_text} - {option['price']}", 
                 callback_data=f"service:{option['id']}"
             )])
+    
     keyboard.append([InlineKeyboardButton("🔙 Назад к категориям", callback_data="back_to_categories")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -155,8 +171,15 @@ def get_contract_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_payment_keyboard():
+    """Клавиатура после выбора услуги - сначала только реквизиты"""
     keyboard = [
-        [InlineKeyboardButton("💳 Реквизиты для оплаты", callback_data="show_requisites")],
+        [InlineKeyboardButton("💳 Реквизиты для оплаты", callback_data="show_requisites")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_receipt_keyboard():
+    """Клавиатура с кнопкой отправки чека (появляется после показа реквизитов)"""
+    keyboard = [
         [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -257,9 +280,12 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     
     context.user_data["selected_service"] = selected_service
     
+    # Показываем полное название в сообщении
+    service_full_name = selected_service.get("name", selected_service.get("short", ""))
+    
     text = (
         f"<b>🏟 Вы выбрали УСЛУГУ:</b>\n"
-        f"{selected_service['name']} - {selected_service['price']}\n\n"
+        f"{service_full_name} - {selected_service['price']}\n\n"
         f"<b>📍 {camp['name']}</b>\n"
         f"{camp['address']}"
     )
@@ -267,7 +293,7 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     await query.edit_message_text(
         text=text,
         parse_mode='HTML',
-        reply_markup=get_payment_keyboard()
+        reply_markup=get_payment_keyboard()  # Только кнопка "Реквизиты"
     )
 
 async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -311,6 +337,7 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     if query.data == "show_requisites":
+        # Показываем реквизиты
         await query.message.reply_text(
             text=f"📄 <a href='{REQUISITES_LINK}'>Реквизиты \"Школа мяча\"</a>\n\n"
                  "⬇️ Для оплаты услуги нужно:\n"
@@ -318,7 +345,8 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
                  "2️⃣ Ввести верную сумму\n"
                  "3️⃣ Произвести оплату по реквизитам✅\n\n"
                  "Пожалуйста, не забудьте прислать нам скриншот - подтверждение оплаты в следующем сообщении🙌",
-            parse_mode='HTML'
+            parse_mode='HTML',
+            reply_markup=get_receipt_keyboard()  # После реквизитов показываем кнопку отправки чека
         )
         
     elif query.data == "send_receipt":
@@ -377,7 +405,9 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fio_payer = context.user_data.get("fio_payer", "Не указано")
     phone = context.user_data.get("phone", "Не указано")
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
-    service = context.user_data.get("selected_service", {}).get("name", "Не выбрана")
+    service_data = context.user_data.get("selected_service", {})
+    service_name = service_data.get("name", service_data.get("short", "Не выбрана"))
+    service_price = service_data.get("price", "")
     
     # Формируем сообщение для админа
     caption = (
@@ -388,7 +418,7 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📱 Username: @{user.username or 'нет'}\n"
         f"━━━━━━━━━━━━━━━\n"
         f"🏕️ Кэмп: {camp}\n"
-        f"📋 Услуга: {service}\n"
+        f"📋 Услуга: {service_name} - {service_price}\n"
         f"━━━━━━━━━━━━━━━\n"
         f"👶 ФИО участника: {fio_participant}\n"
         f"👨 ФИО плательщика: {fio_payer}\n"
@@ -396,17 +426,17 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"━━━━━━━━━━━━━━━"
     )
     
-    # Отправляем админу
+    # Отправляем админу на защищенный ID
     try:
         if update.message.photo:
             await context.bot.send_photo(
-                chat_id=ADMIN_USERNAME,
+                chat_id=ADMIN_CHAT_ID,  # ← ваш ID
                 photo=update.message.photo[-1].file_id,
                 caption=caption
             )
         else:
             await context.bot.send_document(
-                chat_id=ADMIN_USERNAME,
+                chat_id=ADMIN_CHAT_ID,  # ← ваш ID
                 document=update.message.document.file_id,
                 caption=caption
             )
@@ -418,8 +448,10 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as e:
         logger.error(f"Ошибка при отправке админу: {e}")
+        # Пользователь всё равно получает подтверждение
         await update.message.reply_text(
-            "✅ Спасибо! Ваш чек получен."
+            "✅ Спасибо! Ваш чек получен.\n"
+            "🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     
     # Очищаем данные
@@ -453,13 +485,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 if update.message.document:
                     await context.bot.send_document(
-                        chat_id=ADMIN_USERNAME,
+                        chat_id=ADMIN_CHAT_ID,
                         document=update.message.document.file_id,
                         caption=caption
                     )
                 else:
                     await context.bot.send_photo(
-                        chat_id=ADMIN_USERNAME,
+                        chat_id=ADMIN_CHAT_ID,
                         photo=update.message.photo[-1].file_id,
                         caption=caption
                     )
@@ -498,6 +530,7 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     """Запуск бота"""
     logger.info("🚀 Запуск бота (обновленная версия)...")
+    logger.info(f"👤 Администратор ID: {ADMIN_CHAT_ID}")
     
     try:
         application = Application.builder().token(BOT_TOKEN).build()
@@ -512,6 +545,7 @@ def main():
                 RECEIPT_PHOTO: [MessageHandler(filters.PHOTO | filters.Document.ALL, receipt_photo)],
             },
             fallbacks=[CommandHandler('cancel', cancel)],
+            per_message=False
         )
         
         # Обработчики команд
@@ -524,7 +558,7 @@ def main():
         application.add_handler(CallbackQueryHandler(handle_service_selection, pattern='^service:'))
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))
         application.add_handler(CallbackQueryHandler(handle_sochi_contract, pattern='^(download_contract|send_contract)$'))
-        application.add_handler(CallbackQueryHandler(handle_payment, pattern='^show_requisites$'))
+        application.add_handler(CallbackQueryHandler(handle_payment, pattern='^(show_requisites|send_receipt)$'))
         application.add_handler(CallbackQueryHandler(handle_back, pattern='^back_to_categories$'))
         
         # Добавляем ConversationHandler

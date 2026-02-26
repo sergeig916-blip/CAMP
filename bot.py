@@ -2,11 +2,14 @@ import os
 import logging
 import sys
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 ADMIN_USERNAME = "@Dmitry_Kh_87"  # username администратора
+
+# Состояния для ConversationHandler
+(FIO_PARTICIPANT, FIO_PAYER, PHONE, RECEIPT_PHOTO) = range(4)
 
 # ========== ДАННЫЕ ==========
 PDF_LINK = "https://clck.ru/3RuZKG"  # ссылка на оферту/договор
@@ -319,89 +322,161 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     elif query.data == "send_receipt":
-        # Запрашиваем данные для идентификации платежа
+        # Начинаем пошаговый сбор данных
         await query.message.reply_text(
-            "📝 Пожалуйста, отправьте чек об оплате и укажите данные:\n"
-            "ФИО участника:\n"
-            "ФИО плательщика:\n"
-            "Телефон для связи:"
+            "📝 Шаг 1 из 4\n\n"
+            "Введите <b>ФИО участника</b>:",
+            parse_mode='HTML'
         )
-        context.user_data["awaiting_receipt"] = True
+        return FIO_PARTICIPANT
+
+# ========== ОБРАБОТЧИКИ ДЛЯ ПОШАГОВОГО СБОРА ДАННЫХ ==========
+async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получаем ФИО участника"""
+    context.user_data["fio_participant"] = update.message.text
+    await update.message.reply_text(
+        "📝 Шаг 2 из 4\n\n"
+        "Введите <b>ФИО плательщика</b>:",
+        parse_mode='HTML'
+    )
+    return FIO_PAYER
+
+async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получаем ФИО плательщика"""
+    context.user_data["fio_payer"] = update.message.text
+    await update.message.reply_text(
+        "📝 Шаг 3 из 4\n\n"
+        "Введите <b>телефон для связи</b>:",
+        parse_mode='HTML'
+    )
+    return PHONE
+
+async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получаем телефон"""
+    context.user_data["phone"] = update.message.text
+    await update.message.reply_text(
+        "📝 Шаг 4 из 4\n\n"
+        "Теперь отправьте <b>фото или скан чека об оплате</b>:",
+        parse_mode='HTML'
+    )
+    return RECEIPT_PHOTO
+
+async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получаем чек и отправляем админу"""
+    user = update.effective_user
+    
+    # Проверяем, что прислали фото или документ
+    if not (update.message.photo or update.message.document):
+        await update.message.reply_text(
+            "Пожалуйста, отправьте фото или скан чека об оплате"
+        )
+        return RECEIPT_PHOTO
+    
+    # Собираем все данные
+    fio_participant = context.user_data.get("fio_participant", "Не указано")
+    fio_payer = context.user_data.get("fio_payer", "Не указано")
+    phone = context.user_data.get("phone", "Не указано")
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    service = context.user_data.get("selected_service", {}).get("name", "Не выбрана")
+    
+    # Формируем сообщение для админа
+    caption = (
+        f"💰 НОВАЯ ОПЛАТА\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"👤 Пользователь: {user.full_name}\n"
+        f"🆔 ID: {user.id}\n"
+        f"📱 Username: @{user.username or 'нет'}\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"🏕️ Кэмп: {camp}\n"
+        f"📋 Услуга: {service}\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"👶 ФИО участника: {fio_participant}\n"
+        f"👨 ФИО плательщика: {fio_payer}\n"
+        f"📞 Телефон: {phone}\n"
+        f"━━━━━━━━━━━━━━━"
+    )
+    
+    # Отправляем админу
+    try:
+        if update.message.photo:
+            await context.bot.send_photo(
+                chat_id=ADMIN_USERNAME,
+                photo=update.message.photo[-1].file_id,
+                caption=caption
+            )
+        else:
+            await context.bot.send_document(
+                chat_id=ADMIN_USERNAME,
+                document=update.message.document.file_id,
+                caption=caption
+            )
+        
+        # Благодарим пользователя
+        await update.message.reply_text(
+            "✅ Спасибо! Чек получен и отправлен администратору.\n"
+            "🌟 Спасибо, что выбираете Школа мяча! 🌟"
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при отправке админу: {e}")
+        await update.message.reply_text(
+            "✅ Спасибо! Ваш чек получен."
+        )
+    
+    # Очищаем данные
+    context.user_data.clear()
+    
+    return ConversationHandler.END
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Отмена операции"""
+    await update.message.reply_text(
+        "Операция отменена. Нажмите /start чтобы начать заново."
+    )
+    context.user_data.clear()
+    return ConversationHandler.END
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка сообщений (договоры, чеки)"""
+    """Обработка сообщений (договоры)"""
     user_data = context.user_data
     user = update.effective_user
     
-    # Если ожидаем договор
+    # Если ожидаем договор (не в процессе оплаты)
     if user_data.get("awaiting_contract"):
         if update.message.document or update.message.photo:
-            # Пересылаем админу
+            # Формируем сообщение для админа
             caption = (f"📄 Договор от пользователя\n"
                       f"ID: {user.id}\n"
                       f"Username: @{user.username or 'нет'}\n"
                       f"Кэмп: {user_data.get('selected_camp', {}).get('name', 'Не выбран')}\n"
                       f"Услуга: {user_data.get('selected_service', {}).get('name', 'Не выбрана')}")
             
-            if update.message.document:
-                await context.bot.send_document(
-                    chat_id=ADMIN_USERNAME,
-                    document=update.message.document.file_id,
-                    caption=caption
+            try:
+                if update.message.document:
+                    await context.bot.send_document(
+                        chat_id=ADMIN_USERNAME,
+                        document=update.message.document.file_id,
+                        caption=caption
+                    )
+                else:
+                    await context.bot.send_photo(
+                        chat_id=ADMIN_USERNAME,
+                        photo=update.message.photo[-1].file_id,
+                        caption=caption
+                    )
+                
+                await update.message.reply_text(
+                    "✅ Договор получен и отправлен администратору. Спасибо!"
                 )
-            else:
-                await context.bot.send_photo(
-                    chat_id=ADMIN_USERNAME,
-                    photo=update.message.photo[-1].file_id,
-                    caption=caption
+            except Exception as e:
+                logger.error(f"Ошибка при отправке договора админу: {e}")
+                await update.message.reply_text(
+                    "✅ Договор получен. Спасибо!"
                 )
             
-            await update.message.reply_text(
-                "✅ Договор получен и отправлен администратору. Спасибо!"
-            )
             user_data["awaiting_contract"] = False
         else:
             await update.message.reply_text(
                 "Пожалуйста, отправьте файл или фото договора"
-            )
-    
-    # Если ожидаем чек
-    elif user_data.get("awaiting_receipt"):
-        if update.message.photo or update.message.document:
-            # Получаем текст сообщения для данных
-            text = update.message.caption or update.message.text or ""
-            
-            # Пересылаем админу
-            caption = (f"💰 Чек об оплате\n"
-                      f"От пользователя: {user.full_name}\n"
-                      f"ID: {user.id}\n"
-                      f"Username: @{user.username or 'нет'}\n"
-                      f"Кэмп: {user_data.get('selected_camp', {}).get('name', 'Не выбран')}\n"
-                      f"Услуга: {user_data.get('selected_service', {}).get('name', 'Не выбрана')}\n"
-                      f"Данные плательщика: {text}")
-            
-            if update.message.photo:
-                await context.bot.send_photo(
-                    chat_id=ADMIN_USERNAME,
-                    photo=update.message.photo[-1].file_id,
-                    caption=caption
-                )
-            else:
-                await context.bot.send_document(
-                    chat_id=ADMIN_USERNAME,
-                    document=update.message.document.file_id,
-                    caption=caption
-                )
-            
-            await update.message.reply_text(
-                "✅ Чек получен и отправлен администратору. Спасибо! 🌟\n"
-                "Спасибо, что выбираете Школа мяча! 🌟"
-            )
-            user_data["awaiting_receipt"] = False
-        else:
-            # Если просто текст без файла
-            await update.message.reply_text(
-                "Пожалуйста, отправьте фото или скан чека об оплате"
             )
 
 async def handle_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -416,17 +491,8 @@ async def handle_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик ошибок - только логирование, без отправки админу"""
+    """Обработчик ошибок - только логирование"""
     logger.error(f"Ошибка: {context.error}")
-    
-    # Просто уведомляем пользователя, админу не отправляем
-    try:
-        if update and update.callback_query:
-            await update.callback_query.answer("⚠️ Произошла ошибка. Попробуйте /start")
-        elif update and update.message:
-            await update.message.reply_text("⚠️ Ошибка. Нажмите /start")
-    except:
-        pass
 
 # ========== ЗАПУСК ==========
 def main():
@@ -436,8 +502,21 @@ def main():
     try:
         application = Application.builder().token(BOT_TOKEN).build()
         
+        # Обработчик для пошагового сбора данных об оплате
+        conv_handler = ConversationHandler(
+            entry_points=[CallbackQueryHandler(handle_payment, pattern='^send_receipt$')],
+            states={
+                FIO_PARTICIPANT: [MessageHandler(filters.TEXT & ~filters.COMMAND, fio_participant)],
+                FIO_PAYER: [MessageHandler(filters.TEXT & ~filters.COMMAND, fio_payer)],
+                PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, phone)],
+                RECEIPT_PHOTO: [MessageHandler(filters.PHOTO | filters.Document.ALL, receipt_photo)],
+            },
+            fallbacks=[CommandHandler('cancel', cancel)],
+        )
+        
         # Обработчики команд
         application.add_handler(CommandHandler('start', start))
+        application.add_handler(CommandHandler('cancel', cancel))
         
         # Обработчики callback'ов
         application.add_handler(CallbackQueryHandler(handle_camp_selection, pattern='^camp:'))
@@ -445,10 +524,13 @@ def main():
         application.add_handler(CallbackQueryHandler(handle_service_selection, pattern='^service:'))
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))
         application.add_handler(CallbackQueryHandler(handle_sochi_contract, pattern='^(download_contract|send_contract)$'))
-        application.add_handler(CallbackQueryHandler(handle_payment, pattern='^(show_requisites|send_receipt)$'))
+        application.add_handler(CallbackQueryHandler(handle_payment, pattern='^show_requisites$'))
         application.add_handler(CallbackQueryHandler(handle_back, pattern='^back_to_categories$'))
         
-        # Обработчик сообщений (фото и документы)
+        # Добавляем ConversationHandler
+        application.add_handler(conv_handler)
+        
+        # Обработчик сообщений (для договоров)
         application.add_handler(MessageHandler(filters.PHOTO | filters.Document.ALL, handle_message))
         
         # Обработчик ошибок

@@ -7,16 +7,19 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 
-# 🛡️ ВАШ ID ПОЛУЧЕН ЧЕРЕЗ @userinfobot
-ADMIN_CHAT_ID = 42038232  # ваш цифровой ID
+# 🛡️ ВАШ ID
+ADMIN_CHAT_ID = 246014045
 
 # Состояния для ConversationHandler
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, RECEIPT_PHOTO) = range(4)
+# Состояния для Сочи
+(SOCHI_WAIT_CONTRACT, SOCHI_FIO, SOCHI_PHONE) = range(4, 7)
 
 # ========== ДАННЫЕ ==========
 PDF_LINK = "https://clck.ru/3RuZKG"  # ссылка на оферту/договор
 QR_LINK = "https://clck.ru/3RuZZA"    # ссылка на QR-код для оплаты
-REQUISITES_LINK = PDF_LINK  # используем ту же ссылку для реквизитов
+REQUISITES_LINK = PDF_LINK
+ADMIN_PHONE = "8-985-579-67-79"  # телефон из файла
 
 # ========== ОБНОВЛЕННЫЕ ДАННЫЕ КЭМПОВ ==========
 CAMPS = [
@@ -62,7 +65,7 @@ CAMPS = [
     }
 ]
 
-# ========== УСЛУГИ С КОМПАКТНЫМИ НАЗВАНИЯМИ ==========
+# ========== УСЛУГИ ==========
 SERVICES = {
     "camp": {
         "name": "🏕️ КЭМП",
@@ -172,22 +175,36 @@ def get_agree_keyboard():
     keyboard = [[InlineKeyboardButton("✅ СОГЛАСЕН", callback_data="agree")]]
     return InlineKeyboardMarkup(keyboard)
 
-def get_contract_keyboard():
+def get_sochi_contract_keyboard():
+    """Клавиатура для Сочи с договором"""
     keyboard = [
-        [InlineKeyboardButton("📄 Скачать договор", callback_data="download_contract")],
-        [InlineKeyboardButton("✅ Отправить подписанный договор", callback_data="send_contract")]
+        [InlineKeyboardButton("📄 Скачать договор (PDF)", callback_data="sochi_download_contract")],
+        [InlineKeyboardButton("✅ Я подписал договор", callback_data="sochi_contract_signed")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_payment_keyboard():
+    """Клавиатура с реквизитами и связью с админом"""
     keyboard = [
-        [InlineKeyboardButton("💳 Реквизиты для оплаты", callback_data="show_requisites")]
+        [InlineKeyboardButton("💳 Реквизиты для оплаты", callback_data="show_requisites")],
+        [InlineKeyboardButton("📞 Связаться с администратором", callback_data="contact_admin")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_receipt_keyboard():
+    """Клавиатура после показа реквизитов"""
     keyboard = [
-        [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")]
+        [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")],
+        [InlineKeyboardButton("📞 Связаться с администратором", callback_data="contact_admin")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_contact_admin_keyboard():
+    """Клавиатура с номером телефона и ссылкой на админа"""
+    keyboard = [
+        [InlineKeyboardButton("📞 Написать администратору", url=f"tg://user?id={ADMIN_CHAT_ID}")],
+        [InlineKeyboardButton("📱 Позвонить", url=f"tel:{ADMIN_PHONE}")],
+        [InlineKeyboardButton("🔙 Назад к услугам", callback_data="back_to_services")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -218,8 +235,28 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data["is_sochi"] = (camp_id == "sochi")
         
         if camp_id == "sochi":
-            await show_sochi_services(update, context)
+            # Для Сочи показываем договор и инструкцию
+            text = (
+                f"<b>Вы выбрали:</b>\n"
+                f"🏕️ {camp['offer_text']}\n"
+                f"📍 {camp['address']}\n\n"
+                f"📄 <a href='{PDF_LINK}'>Договор: PDF (ООО ШМП)</a>\n\n"
+                f"<b>Необходимо:</b>\n"
+                f"1. Скачать договор себе на устройство\n"
+                f"2. Заполнить персональные данные в документе (отмечены жёлтым)\n"
+                f"3. Распечатать договор\n"
+                f"4. Подписать его\n"
+                f"5. Прислать скан подписанного договора в данный чат"
+            )
+            
+            await query.edit_message_text(
+                text=text,
+                parse_mode='HTML',
+                disable_web_page_preview=True,
+                reply_markup=get_sochi_contract_keyboard()
+            )
         else:
+            # Для городских кэмпов показываем оферту
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
@@ -235,14 +272,121 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 reply_markup=get_agree_keyboard()
             )
 
-async def show_sochi_services(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показать услуги для Сочи"""
+async def handle_sochi_contract(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка договора для Сочи"""
     query = update.callback_query
-    await query.edit_message_text(
-        text="<b>Какой формат поездки вы выбираете?🌝</b>",
+    await query.answer()
+    
+    if query.data == "sochi_download_contract":
+        # Отправляем ссылку на договор еще раз
+        await query.message.reply_text(
+            text=f"📄 <a href='{PDF_LINK}'>Скачать договор (PDF)</a>",
+            parse_mode='HTML'
+        )
+        
+    elif query.data == "sochi_contract_signed":
+        # Просим прислать скан договора
+        await query.message.reply_text(
+            "📎 Пожалуйста, отправьте скан или фото подписанного договора"
+        )
+        return SOCHI_WAIT_CONTRACT
+
+async def sochi_wait_contract(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получаем скан подписанного договора"""
+    user = update.effective_user
+    
+    if not (update.message.document or update.message.photo):
+        await update.message.reply_text(
+            "Пожалуйста, отправьте файл или фото подписанного договора"
+        )
+        return SOCHI_WAIT_CONTRACT
+    
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    
+    caption = (f"📄 Подписанный договор\n"
+              f"━━━━━━━━━━━━━━━\n"
+              f"👤 Пользователь: {user.full_name}\n"
+              f"🆔 ID: {user.id}\n"
+              f"📱 Username: @{user.username or 'нет'}\n"
+              f"━━━━━━━━━━━━━━━\n"
+              f"🏕️ Кэмп: {camp}\n"
+              f"━━━━━━━━━━━━━━━")
+    
+    try:
+        if update.message.document:
+            await context.bot.send_document(
+                chat_id=ADMIN_CHAT_ID,
+                document=update.message.document.file_id,
+                caption=caption
+            )
+        else:
+            await context.bot.send_photo(
+                chat_id=ADMIN_CHAT_ID,
+                photo=update.message.photo[-1].file_id,
+                caption=caption
+            )
+        
+        await update.message.reply_text(
+            "✅ Спасибо! Договор получен.\n\n"
+            "📝 Для завершения регистрации введите <b>ФИО участника</b>:",
+            parse_mode='HTML'
+        )
+        return SOCHI_FIO
+        
+    except Exception as e:
+        logger.error(f"Ошибка при отправке договора: {e}")
+        await update.message.reply_text(
+            "✅ Спасибо! Договор получен.\n\n"
+            "📝 Для завершения регистрации введите <b>ФИО участника</b>:",
+            parse_mode='HTML'
+        )
+        return SOCHI_FIO
+
+async def sochi_fio(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получаем ФИО участника для Сочи"""
+    context.user_data["sochi_fio"] = update.message.text
+    await update.message.reply_text(
+        "📝 Введите <b>телефон для связи</b>:",
+        parse_mode='HTML'
+    )
+    return SOCHI_PHONE
+
+async def sochi_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получаем телефон для Сочи и переходим к выбору формата"""
+    context.user_data["sochi_phone"] = update.message.text
+    
+    user = update.effective_user
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    fio = context.user_data.get("sochi_fio", "Не указано")
+    phone = context.user_data.get("sochi_phone", "Не указано")
+    
+    info_caption = (f"📋 Регистрация на Сочи\n"
+                   f"━━━━━━━━━━━━━━━\n"
+                   f"👤 Пользователь: {user.full_name}\n"
+                   f"🆔 ID: {user.id}\n"
+                   f"📱 Username: @{user.username or 'нет'}\n"
+                   f"━━━━━━━━━━━━━━━\n"
+                   f"🏕️ Кэмп: {camp}\n"
+                   f"👶 ФИО участника: {fio}\n"
+                   f"📞 Телефон: {phone}\n"
+                   f"━━━━━━━━━━━━━━━")
+    
+    try:
+        await context.bot.send_message(
+            chat_id=ADMIN_CHAT_ID,
+            text=info_caption
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при отправке данных: {e}")
+    
+    await update.message.reply_text(
+        "✅ Спасибо! Данные сохранены.\n\n"
+        "<b>Какой формат поездки вы выбираете?🌝</b>",
         parse_mode='HTML',
         reply_markup=get_services_keyboard("camp", is_sochi=True)
     )
+    
+    return ConversationHandler.END
 
 async def handle_service_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Выбор категории услуг"""
@@ -300,7 +444,7 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     )
 
 async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Согласие с офертой → выбор услуг"""
+    """Согласие с офертой → выбор услуг (для городских кэмпов)"""
     query = update.callback_query
     await query.answer()
     
@@ -311,28 +455,6 @@ async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='HTML',
         reply_markup=get_service_categories_keyboard()
     )
-
-async def handle_sochi_contract(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка договора для Сочи"""
-    query = update.callback_query
-    await query.answer()
-    
-    if query.data == "download_contract":
-        await query.message.reply_text(
-            text=f"📄 <a href='{PDF_LINK}'>Скачать договор</a>\n\n"
-                 "1. Скачайте договор\n"
-                 "2. Заполните персональные данные (отмечены жёлтым)\n"
-                 "3. Распечатайте и подпишите\n"
-                 "4. Пришлите скан подписанного договора в этот чат",
-            parse_mode='HTML'
-        )
-        context.user_data["awaiting_contract"] = True
-        
-    elif query.data == "send_contract":
-        await query.message.reply_text(
-            "📎 Пожалуйста, отправьте скан или фото подписанного договора"
-        )
-        context.user_data["awaiting_contract"] = True
 
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка оплаты"""
@@ -358,8 +480,66 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='HTML'
         )
         return FIO_PARTICIPANT
+        
+    elif query.data == "contact_admin":
+        await handle_contact_admin(update, context)
 
-# ========== ОБРАБОТЧИКИ ДЛЯ ПОШАГОВОГО СБОРА ДАННЫХ ==========
+async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка запроса связи с администратором"""
+    query = update.callback_query
+    user = update.effective_user
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    service = context.user_data.get("selected_service", {}).get("name", "Не выбрана")
+    
+    # Отправляем уведомление админу
+    notification = (f"📞 ЗАПРОС СВЯЗИ\n"
+                   f"━━━━━━━━━━━━━━━\n"
+                   f"👤 Пользователь: {user.full_name}\n"
+                   f"🆔 ID: {user.id}\n"
+                   f"📱 Username: @{user.username or 'нет'}\n"
+                   f"━━━━━━━━━━━━━━━\n"
+                   f"🏕️ Кэмп: {camp}\n"
+                   f"📋 Услуга: {service}\n"
+                   f"━━━━━━━━━━━━━━━")
+    
+    try:
+        await context.bot.send_message(
+            chat_id=ADMIN_CHAT_ID,
+            text=notification
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при уведомлении админа: {e}")
+    
+    # Показываем пользователю контакты
+    await query.message.reply_text(
+        text=f"📞 <b>Связь с администратором</b>\n\n"
+             f"Телефон: <code>{ADMIN_PHONE}</code>\n\n"
+             f"Нажмите кнопку ниже, чтобы написать администратору в Telegram:",
+        parse_mode='HTML',
+        reply_markup=get_contact_admin_keyboard()
+    )
+
+async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Возврат к услугам после контакта с админом"""
+    query = update.callback_query
+    await query.answer()
+    
+    is_sochi = context.user_data.get("is_sochi", False)
+    
+    if is_sochi:
+        await query.message.reply_text(
+            text="<b>Какой формат поездки вы выбираете?🌝</b>",
+            parse_mode='HTML',
+            reply_markup=get_services_keyboard("camp", is_sochi=True)
+        )
+    else:
+        await query.message.reply_text(
+            text="<b>Какая услуга вас интересует?</b>",
+            parse_mode='HTML',
+            reply_markup=get_service_categories_keyboard()
+        )
+
+# ========== ОБРАБОТЧИКИ ДЛЯ ПОШАГОВОГО СБОРА ДАННЫХ (ОПЛАТА) ==========
 async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Получаем ФИО участника"""
     logger.info(f"Получено ФИО участника: {update.message.text}")
@@ -443,14 +623,24 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await update.message.reply_text(
             "✅ Спасибо! Чек получен и отправлен администратору.\n"
-            "🌟 Спасибо, что выбираете Школа мяча! 🌟"
+            "🌟 Спасибо, что выбираете Школа мяча 🌟"
         )
     except Exception as e:
         logger.error(f"Ошибка при отправке админу: {e}")
         await update.message.reply_text(
             "✅ Спасибо! Ваш чек получен.\n"
-            "🌟 Спасибо, что выбираете Школа мяча! 🌟"
+            "🌟 Спасибо, что выбираете Школа мяча 🌟"
         )
+    
+    # После оплаты предлагаем связаться с админом
+    contact_keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("📞 Связаться с администратором", callback_data="contact_admin")
+    ]])
+    
+    await update.message.reply_text(
+        "Если у вас остались вопросы, вы можете связаться с администратором:",
+        reply_markup=contact_keyboard
+    )
     
     context.user_data.clear()
     return ConversationHandler.END
@@ -463,59 +653,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     return ConversationHandler.END
 
-async def handle_contract_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка документов для договора (отдельно от чека)"""
-    user = update.effective_user
-    user_data = context.user_data
-    
-    if user_data.get("awaiting_contract"):
-        if update.message.document or update.message.photo:
-            caption = (f"📄 Договор от пользователя\n"
-                      f"ID: {user.id}\n"
-                      f"Username: @{user.username or 'нет'}\n"
-                      f"Кэмп: {user_data.get('selected_camp', {}).get('name', 'Не выбран')}\n"
-                      f"Услуга: {user_data.get('selected_service', {}).get('name', 'Не выбрана')}")
-            
-            try:
-                if update.message.document:
-                    await context.bot.send_document(
-                        chat_id=ADMIN_CHAT_ID,
-                        document=update.message.document.file_id,
-                        caption=caption
-                    )
-                else:
-                    await context.bot.send_photo(
-                        chat_id=ADMIN_CHAT_ID,
-                        photo=update.message.photo[-1].file_id,
-                        caption=caption
-                    )
-                
-                await update.message.reply_text(
-                    "✅ Договор получен и отправлен администратору. Спасибо!"
-                )
-            except Exception as e:
-                logger.error(f"Ошибка при отправке договора: {e}")
-                await update.message.reply_text(
-                    "✅ Договор получен. Спасибо!"
-                )
-            
-            user_data["awaiting_contract"] = False
-        else:
-            await update.message.reply_text(
-                "Пожалуйста, отправьте файл или фото договора"
-            )
-
-async def handle_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат к выбору категорий"""
-    query = update.callback_query
-    await query.answer()
-    
-    await query.edit_message_text(
-        text="<b>Какая услуга вас интересует?</b>",
-        parse_mode='HTML',
-        reply_markup=get_service_categories_keyboard()
-    )
-
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик ошибок"""
     logger.error(f"Ошибка: {context.error}")
@@ -525,12 +662,13 @@ def main():
     """Запуск бота"""
     logger.info("🚀 Запуск бота...")
     logger.info(f"👤 Администратор ID: {ADMIN_CHAT_ID}")
+    logger.info(f"📞 Телефон администратора: {ADMIN_PHONE}")
     
     try:
         application = Application.builder().token(BOT_TOKEN).build()
         
         # ConversationHandler для оплаты
-        conv_handler = ConversationHandler(
+        payment_conv_handler = ConversationHandler(
             entry_points=[CallbackQueryHandler(handle_payment, pattern='^send_receipt$')],
             states={
                 FIO_PARTICIPANT: [MessageHandler(filters.TEXT & ~filters.COMMAND, fio_participant)],
@@ -543,23 +681,32 @@ def main():
             persistent=False,
         )
         
-        # Добавляем обработчики в правильном порядке
+        # ConversationHandler для Сочи
+        sochi_conv_handler = ConversationHandler(
+            entry_points=[CallbackQueryHandler(handle_sochi_contract, pattern='^sochi_contract_signed$')],
+            states={
+                SOCHI_WAIT_CONTRACT: [MessageHandler(filters.PHOTO | filters.Document.ALL, sochi_wait_contract)],
+                SOCHI_FIO: [MessageHandler(filters.TEXT & ~filters.COMMAND, sochi_fio)],
+                SOCHI_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, sochi_phone)],
+            },
+            fallbacks=[CommandHandler('cancel', cancel)],
+            name="sochi_conversation",
+            persistent=False,
+        )
+        
+        # Добавляем обработчики
         application.add_handler(CommandHandler('start', start))
         application.add_handler(CommandHandler('cancel', cancel))
-        application.add_handler(conv_handler)
+        application.add_handler(payment_conv_handler)
+        application.add_handler(sochi_conv_handler)
         
         application.add_handler(CallbackQueryHandler(handle_camp_selection, pattern='^camp:'))
         application.add_handler(CallbackQueryHandler(handle_service_category, pattern='^service_category:'))
         application.add_handler(CallbackQueryHandler(handle_service_selection, pattern='^service:'))
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))
-        application.add_handler(CallbackQueryHandler(handle_sochi_contract, pattern='^(download_contract|send_contract)$'))
-        application.add_handler(CallbackQueryHandler(handle_payment, pattern='^show_requisites$'))
-        application.add_handler(CallbackQueryHandler(handle_back, pattern='^back_to_categories$'))
-        
-        application.add_handler(MessageHandler(
-            (filters.PHOTO | filters.Document.ALL) & ~filters.TEXT, 
-            handle_contract_document
-        ))
+        application.add_handler(CallbackQueryHandler(handle_sochi_contract, pattern='^sochi_download_contract$'))
+        application.add_handler(CallbackQueryHandler(handle_payment, pattern='^(show_requisites|send_receipt|contact_admin)$'))
+        application.add_handler(CallbackQueryHandler(handle_back_to_services, pattern='^back_to_services$'))
         
         application.add_error_handler(error_handler)
         

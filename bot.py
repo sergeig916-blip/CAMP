@@ -8,7 +8,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 
 # 🛡️ ВАШ ID ПОЛУЧЕН ЧЕРЕЗ @userinfobot
-ADMIN_CHAT_ID = 246014045  # ваш цифровой ID
+ADMIN_CHAT_ID = 42038232  # ваш цифровой ID
 
 # Состояния для ConversationHandler
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, RECEIPT_PHOTO) = range(4)

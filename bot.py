@@ -62,17 +62,7 @@ CAMPS = [
     }
 ]
 
-# ========== УСЛУГИ С РАЗБИВКОЙ ПО СТРОКАМ ==========
-def format_service_text(name, price):
-    """Форматирует текст услуги для кнопки с переносом строк"""
-    # Разбиваем длинные названия на 2 строки
-    if len(name) > 30:
-        # Ищем место для переноса
-        parts = name.split(' - ')
-        if len(parts) > 1:
-            return f"{parts[0]}\n{parts[1]} - {price}"
-    return f"{name} - {price}"
-
+# ========== УСЛУГИ ==========
 SERVICES = {
     "camp": {
         "name": "🏕️ КЭМП",
@@ -149,7 +139,6 @@ def get_services_keyboard(category, is_sochi=False):
     
     if category in services:
         for option in services[category]["options"]:
-            # Используем короткое название для кнопки, полное сохраняем в данных
             button_text = option.get("short", option["name"])
             keyboard.append([InlineKeyboardButton(
                 f"{button_text} - {option['price']}", 
@@ -171,14 +160,12 @@ def get_contract_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_payment_keyboard():
-    """Клавиатура после выбора услуги - сначала только реквизиты"""
     keyboard = [
         [InlineKeyboardButton("💳 Реквизиты для оплаты", callback_data="show_requisites")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_receipt_keyboard():
-    """Клавиатура с кнопкой отправки чека (появляется после показа реквизитов)"""
     keyboard = [
         [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")]
     ]
@@ -187,6 +174,8 @@ def get_receipt_keyboard():
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /start"""
+    # Очищаем данные пользователя при старте
+    context.user_data.clear()
     await update.message.reply_text(
         "🏕️ <b>Выберите КЭМП, который вас интересует:</b>",
         parse_mode='HTML',
@@ -209,11 +198,9 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data["selected_camp"] = camp
         context.user_data["is_sochi"] = (camp_id == "sochi")
         
-        # Для Сочи показываем сразу выбор формата поездки
         if camp_id == "sochi":
             await show_sochi_services(update, context)
         else:
-            # Для городских кэмпов показываем оферту
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
@@ -246,7 +233,6 @@ async def handle_service_category(update: Update, context: ContextTypes.DEFAULT_
     category = query.data.split(":")[1]
     is_sochi = context.user_data.get("is_sochi", False)
     
-    # Для Сочи показываем только КЭМП
     if is_sochi and category != "camp":
         await query.answer("Для Сочи доступен только формат КЭМП", show_alert=True)
         return
@@ -265,7 +251,6 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     service_id = query.data.split(":")[1]
     camp = context.user_data.get("selected_camp")
     
-    # Находим выбранную услугу
     selected_service = None
     services_dict = SOCHI_SERVICES if camp and camp["id"] == "sochi" else SERVICES
     
@@ -280,7 +265,6 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     
     context.user_data["selected_service"] = selected_service
     
-    # Показываем полное название в сообщении
     service_full_name = selected_service.get("name", selected_service.get("short", ""))
     
     text = (
@@ -293,7 +277,7 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     await query.edit_message_text(
         text=text,
         parse_mode='HTML',
-        reply_markup=get_payment_keyboard()  # Только кнопка "Реквизиты"
+        reply_markup=get_payment_keyboard()
     )
 
 async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -337,7 +321,6 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     if query.data == "show_requisites":
-        # Показываем реквизиты
         await query.message.reply_text(
             text=f"📄 <a href='{REQUISITES_LINK}'>Реквизиты \"Школа мяча\"</a>\n\n"
                  "⬇️ Для оплаты услуги нужно:\n"
@@ -346,11 +329,10 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
                  "3️⃣ Произвести оплату по реквизитам✅\n\n"
                  "Пожалуйста, не забудьте прислать нам скриншот - подтверждение оплаты в следующем сообщении🙌",
             parse_mode='HTML',
-            reply_markup=get_receipt_keyboard()  # После реквизитов показываем кнопку отправки чека
+            reply_markup=get_receipt_keyboard()
         )
         
     elif query.data == "send_receipt":
-        # Начинаем пошаговый сбор данных
         await query.message.reply_text(
             "📝 Шаг 1 из 4\n\n"
             "Введите <b>ФИО участника</b>:",
@@ -361,6 +343,7 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ========== ОБРАБОТЧИКИ ДЛЯ ПОШАГОВОГО СБОРА ДАННЫХ ==========
 async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Получаем ФИО участника"""
+    logger.info(f"Получено ФИО участника: {update.message.text}")
     context.user_data["fio_participant"] = update.message.text
     await update.message.reply_text(
         "📝 Шаг 2 из 4\n\n"
@@ -371,6 +354,7 @@ async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Получаем ФИО плательщика"""
+    logger.info(f"Получено ФИО плательщика: {update.message.text}")
     context.user_data["fio_payer"] = update.message.text
     await update.message.reply_text(
         "📝 Шаг 3 из 4\n\n"
@@ -381,6 +365,7 @@ async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Получаем телефон"""
+    logger.info(f"Получен телефон: {update.message.text}")
     context.user_data["phone"] = update.message.text
     await update.message.reply_text(
         "📝 Шаг 4 из 4\n\n"
@@ -392,15 +377,14 @@ async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Получаем чек и отправляем админу"""
     user = update.effective_user
+    logger.info(f"Получен чек от пользователя {user.id}")
     
-    # Проверяем, что прислали фото или документ
     if not (update.message.photo or update.message.document):
         await update.message.reply_text(
             "Пожалуйста, отправьте фото или скан чека об оплате"
         )
         return RECEIPT_PHOTO
     
-    # Собираем все данные
     fio_participant = context.user_data.get("fio_participant", "Не указано")
     fio_payer = context.user_data.get("fio_payer", "Не указано")
     phone = context.user_data.get("phone", "Не указано")
@@ -409,7 +393,6 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     service_name = service_data.get("name", service_data.get("short", "Не выбрана"))
     service_price = service_data.get("price", "")
     
-    # Формируем сообщение для админа
     caption = (
         f"💰 НОВАЯ ОПЛАТА\n"
         f"━━━━━━━━━━━━━━━\n"
@@ -426,37 +409,32 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"━━━━━━━━━━━━━━━"
     )
     
-    # Отправляем админу на защищенный ID
     try:
         if update.message.photo:
             await context.bot.send_photo(
-                chat_id=ADMIN_CHAT_ID,  # ← ваш ID
+                chat_id=ADMIN_CHAT_ID,
                 photo=update.message.photo[-1].file_id,
                 caption=caption
             )
         else:
             await context.bot.send_document(
-                chat_id=ADMIN_CHAT_ID,  # ← ваш ID
+                chat_id=ADMIN_CHAT_ID,
                 document=update.message.document.file_id,
                 caption=caption
             )
         
-        # Благодарим пользователя
         await update.message.reply_text(
             "✅ Спасибо! Чек получен и отправлен администратору.\n"
             "🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     except Exception as e:
         logger.error(f"Ошибка при отправке админу: {e}")
-        # Пользователь всё равно получает подтверждение
         await update.message.reply_text(
             "✅ Спасибо! Ваш чек получен.\n"
             "🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     
-    # Очищаем данные
     context.user_data.clear()
-    
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -467,15 +445,13 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     return ConversationHandler.END
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка сообщений (договоры)"""
-    user_data = context.user_data
+async def handle_contract_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка документов для договора (отдельно от чека)"""
     user = update.effective_user
+    user_data = context.user_data
     
-    # Если ожидаем договор (не в процессе оплаты)
     if user_data.get("awaiting_contract"):
         if update.message.document or update.message.photo:
-            # Формируем сообщение для админа
             caption = (f"📄 Договор от пользователя\n"
                       f"ID: {user.id}\n"
                       f"Username: @{user.username or 'нет'}\n"
@@ -500,7 +476,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "✅ Договор получен и отправлен администратору. Спасибо!"
                 )
             except Exception as e:
-                logger.error(f"Ошибка при отправке договора админу: {e}")
+                logger.error(f"Ошибка при отправке договора: {e}")
                 await update.message.reply_text(
                     "✅ Договор получен. Спасибо!"
                 )
@@ -523,19 +499,19 @@ async def handle_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик ошибок - только логирование"""
+    """Обработчик ошибок"""
     logger.error(f"Ошибка: {context.error}")
 
 # ========== ЗАПУСК ==========
 def main():
     """Запуск бота"""
-    logger.info("🚀 Запуск бота (обновленная версия)...")
+    logger.info("🚀 Запуск бота...")
     logger.info(f"👤 Администратор ID: {ADMIN_CHAT_ID}")
     
     try:
         application = Application.builder().token(BOT_TOKEN).build()
         
-        # Обработчик для пошагового сбора данных об оплате
+        # ConversationHandler для оплаты - должен быть ПЕРВЫМ среди обработчиков сообщений
         conv_handler = ConversationHandler(
             entry_points=[CallbackQueryHandler(handle_payment, pattern='^send_receipt$')],
             states={
@@ -545,32 +521,38 @@ def main():
                 RECEIPT_PHOTO: [MessageHandler(filters.PHOTO | filters.Document.ALL, receipt_photo)],
             },
             fallbacks=[CommandHandler('cancel', cancel)],
-            per_message=False
+            name="payment_conversation",
+            persistent=False,
         )
         
-        # Обработчики команд
+        # ВАЖНЫЙ ПОРЯДОК ДОБАВЛЕНИЯ ОБРАБОТЧИКОВ:
+        
+        # 1. Сначала команды
         application.add_handler(CommandHandler('start', start))
         application.add_handler(CommandHandler('cancel', cancel))
         
-        # Обработчики callback'ов
+        # 2. Потом ConversationHandler (самый важный для сообщений)
+        application.add_handler(conv_handler)
+        
+        # 3. Потом callback-обработчики
         application.add_handler(CallbackQueryHandler(handle_camp_selection, pattern='^camp:'))
         application.add_handler(CallbackQueryHandler(handle_service_category, pattern='^service_category:'))
         application.add_handler(CallbackQueryHandler(handle_service_selection, pattern='^service:'))
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))
         application.add_handler(CallbackQueryHandler(handle_sochi_contract, pattern='^(download_contract|send_contract)$'))
-        application.add_handler(CallbackQueryHandler(handle_payment, pattern='^(show_requisites|send_receipt)$'))
+        application.add_handler(CallbackQueryHandler(handle_payment, pattern='^show_requisites$'))
         application.add_handler(CallbackQueryHandler(handle_back, pattern='^back_to_categories$'))
         
-        # Добавляем ConversationHandler
-        application.add_handler(conv_handler)
+        # 4. Обработчик для договоров (только фото/документы, но не текст)
+        application.add_handler(MessageHandler(
+            (filters.PHOTO | filters.Document.ALL) & ~filters.TEXT, 
+            handle_contract_document
+        ))
         
-        # Обработчик сообщений (для договоров)
-        application.add_handler(MessageHandler(filters.PHOTO | filters.Document.ALL, handle_message))
-        
-        # Обработчик ошибок
+        # 5. Обработчик ошибок
         application.add_error_handler(error_handler)
         
-        logger.info("✅ Бот запущен в режиме polling!")
+        logger.info("✅ Бот запущен!")
         logger.info("🤖 Бот готов к работе!")
         
         application.run_polling(drop_pending_updates=True)

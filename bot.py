@@ -19,7 +19,7 @@ ADMIN_CHAT_ID = 42038232
 PDF_LINK = "https://clck.ru/3RuZKG"  # ссылка на оферту/договор
 QR_LINK = "https://clck.ru/3RuZZA"    # ссылка на QR-код для оплаты
 REQUISITES_LINK = PDF_LINK
-ADMIN_PHONE = "8-985-579-67-79"  # телефон из файла
+ADMIN_PHONE = "89855796779"  # телефон из файла
 
 # ========== ОБНОВЛЕННЫЕ ДАННЫЕ КЭМПОВ ==========
 CAMPS = [

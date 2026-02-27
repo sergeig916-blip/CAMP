@@ -7,8 +7,10 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 
-# 🛡️ ВАШ ID (исправлен на 42038232)
+# 🛡️ ВАШ ID
 ADMIN_CHAT_ID = 42038232
+ADMIN_USERNAME = "Dmitry_Kh_87"  # без @
+ADMIN_PHONE = "89855796779"
 
 # Состояния для ConversationHandler
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, RECEIPT_PHOTO) = range(4)
@@ -16,12 +18,10 @@ ADMIN_CHAT_ID = 42038232
 (SOCHI_WAIT_CONTRACT, SOCHI_FIO, SOCHI_PHONE) = range(4, 7)
 
 # ========== ДАННЫЕ ==========
-PDF_LINK = "https://clck.ru/3RuZKG"  # ссылка на оферту/договор
-QR_LINK = "https://clck.ru/3RuZZA"    # ссылка на QR-код для оплаты
+PDF_LINK = "https://clck.ru/3RuZKG"  # базовая ссылка
 REQUISITES_LINK = PDF_LINK
-ADMIN_PHONE = "89855796779"  # телефон из файла
 
-# ========== ОБНОВЛЕННЫЕ ДАННЫЕ КЭМПОВ ==========
+# ========== ОБНОВЛЕННЫЕ ДАННЫЕ КЭМПОВ (версия 27.02) ==========
 CAMPS = [
     {
         "name": "🏕️ Солнцево (городской)",
@@ -29,7 +29,7 @@ CAMPS = [
         "id": "solntsevo",
         "legal_entity": "ООО ШМП",
         "type": "city",
-        "offer_text": "футбольный дневной КЭМП в Солнцево"
+        "offer_text": "Школа мяча. Футбольный дневной КЭМП в Солнцево"
     },
     {
         "name": "🏕️ Сочи (с ночёвкой)",
@@ -37,23 +37,23 @@ CAMPS = [
         "id": "sochi",
         "legal_entity": "ООО ШМП",
         "type": "overnight",
-        "offer_text": "футбольный КЭМП в Сочи"
+        "offer_text": "Школа мяча. Футбольный КЭМП в Сочи"
     },
     {
         "name": "🏕️ Тушино (городской)",
         "address": "Ул. Лодочная д. 15 стр. 1А",
         "id": "tushino",
-        "legal_entity": "ИП Зубанова ШМП",
+        "legal_entity": "ИП Зубанова / счет ШМП",
         "type": "city",
-        "offer_text": "футбольный дневной КЭМП в Тушино"
+        "offer_text": "Школа мяча. Футбольный дневной КЭМП в Тушино"
     },
     {
         "name": "🏕️ Кузьминки (городской)",
         "address": "Ул. Академика Скрябина д. 23 стр. 2",
         "id": "kuzminki",
-        "legal_entity": "ИП Зубанова ДХ",
+        "legal_entity": "ИП Зубанова / счёт ДХ",
         "type": "city",
-        "offer_text": "футбольный дневной КЭМП в Кузьминках"
+        "offer_text": "Школа мяча. Футбольный дневной КЭМП в Кузьминках"
     },
     {
         "name": "🏕️ Хамовники (городской)",
@@ -61,73 +61,83 @@ CAMPS = [
         "id": "khamovniki",
         "legal_entity": "ООО ШМП",
         "type": "city",
-        "offer_text": "футбольный дневной КЭМП в Хамовниках"
+        "offer_text": "Школа мяча. Футбольный дневной КЭМП в Хамовниках"
     }
 ]
 
-# ========== УСЛУГИ ==========
+# ========== УСЛУГИ С ДАТАМИ ==========
 SERVICES = {
     "camp": {
         "name": "🏕️ КЭМП",
         "options": [
-            {"name": "10 дней - смена 1 (69 990р.)", "price": "69 990р.", "id": "camp_10_days_1", 
-             "short": "10 дней (смена 1)"},
-            {"name": "10 дней - смена 7 (69 990р.)", "price": "69 990р.", "id": "camp_10_days_7", 
-             "short": "10 дней (смена 7)"},
-            {"name": "1 день (7 900р.)", "price": "7 900р.", "id": "camp_1_day", 
+            {"name": "10 дней - смена 1 (01-12 июнь)", "price": "69 990р.", "id": "camp_10_days_1", 
+             "short": "Смена 1 (01-12 июнь)"},
+            {"name": "10 дней - смена 2 (15-26 июнь)", "price": "69 990р.", "id": "camp_10_days_2", 
+             "short": "Смена 2 (15-26 июнь)"},
+            {"name": "10 дней - смена 3 (29.06-10.07)", "price": "69 990р.", "id": "camp_10_days_3", 
+             "short": "Смена 3 (29.06-10.07)"},
+            {"name": "10 дней - смена 4 (13-24 июль)", "price": "69 990р.", "id": "camp_10_days_4", 
+             "short": "Смена 4 (13-24 июль)"},
+            {"name": "10 дней - смена 5 (27.07-07.08)", "price": "69 990р.", "id": "camp_10_days_5", 
+             "short": "Смена 5 (27.07-07.08)"},
+            {"name": "10 дней - смена 6 (10-21 авг)", "price": "69 990р.", "id": "camp_10_days_6", 
+             "short": "Смена 6 (10-21 авг)"},
+            {"name": "10 дней - смена 7 (24-27 авг)", "price": "69 990р.", "id": "camp_10_days_7", 
+             "short": "Смена 7 (24-27 авг)"},
+            {"name": "1 день", "price": "7 900р.", "id": "camp_1_day", 
              "short": "1 день"}
         ]
     },
     "training": {
         "name": "⚽ ТРЕНИРОВКИ",
         "options": [
-            {"name": "Тренировка - 1 занятие (1 890р.)", "price": "1 890р.", "id": "training_1", 
+            {"name": "Тренировка - 1 занятие", "price": "1 890р.", "id": "training_1", 
              "short": "1 тренировка"},
-            {"name": "Абонемент - 5 занятий (7 450р.)", "price": "7 450р. (1 490р./занятие)", "id": "training_5", 
+            {"name": "Абонемент - 5 занятий", "price": "7 450р. (1 490р./занятие)", "id": "training_5", 
              "short": "Абонемент 5 занятий"},
-            {"name": "Абонемент - 10 занятий (12 900р.)", "price": "12 900р. (1 290р./занятие)", "id": "training_10", 
+            {"name": "Абонемент - 10 занятий", "price": "12 900р. (1 290р./занятие)", "id": "training_10", 
              "short": "Абонемент 10 занятий"}
         ]
     },
     "other": {
         "name": "📦 ПРОЧЕЕ",
         "options": [
-            {"name": "Оплата после пробного дня (65 000р.)", "price": "65 000р.", "id": "trial_day", 
+            {"name": "Оплата после пробного дня", "price": "65 000р.", "id": "trial_day", 
              "short": "Пробный день"},
-            {"name": "Форма (4 500р.)", "price": "4 500р.", "id": "uniform", 
+            {"name": "Форма", "price": "4 500р.", "id": "uniform", 
              "short": "Форма"}
         ]
     }
 }
 
-# Для Сочи свои цены
+# Для Сочи свои цены (с датами)
 SOCHI_SERVICES = {
     "camp": {
         "name": "🏕️ КЭМП в Сочи",
         "options": [
-            {"name": "Спортсмен (без сопровождения) - Май 02-08 (89 990р.)", "price": "89 990р.", 
-             "id": "sochi_sportsman_may", "short": "Спортсмен (Май)"},
-            {"name": "Спортсмен (без сопровождения) - Июнь 19-27 (114 990р.)", "price": "114 990р.", 
-             "id": "sochi_sportsman_june", "short": "Спортсмен (Июнь)"},
-            {"name": "Спортсмен (без сопровождения) - Июль 4-11 (102 490р.)", "price": "102 490р.", 
-             "id": "sochi_sportsman_july", "short": "Спортсмен (Июль)"},
-            {"name": "Спортсмен (без сопровождения) - Август 1-8 (102 490р.)", "price": "102 490р.", 
-             "id": "sochi_sportsman_august", "short": "Спортсмен (Август)"},
-            {"name": "Спортсмен + родитель - Май 02-08 (139 990р.)", "price": "139 990р.", 
+            {"name": "Спортсмен (без сопровождения) - Май 02-08", "price": "89 990р.", 
+             "id": "sochi_sportsman_may", "short": "Спортсмен (Май 02-08)"},
+            {"name": "Спортсмен (без сопровождения) - Июнь 19-27", "price": "114 990р.", 
+             "id": "sochi_sportsman_june", "short": "Спортсмен (Июнь 19-27)"},
+            {"name": "Спортсмен (без сопровождения) - Июль 4-11", "price": "102 490р.", 
+             "id": "sochi_sportsman_july", "short": "Спортсмен (Июль 4-11)"},
+            {"name": "Спортсмен (без сопровождения) - Август 1-8", "price": "102 490р.", 
+             "id": "sochi_sportsman_august", "short": "Спортсмен (Август 1-8)"},
+            {"name": "Спортсмен + родитель - Май 02-08", "price": "139 990р.", 
              "id": "sochi_family_may", "short": "Спортсмен+род. (Май)"},
-            {"name": "Спортсмен + родитель - Июнь 19-27 (183 990р.)", "price": "183 990р.", 
+            {"name": "Спортсмен + родитель - Июнь 19-27", "price": "183 990р.", 
              "id": "sochi_family_june", "short": "Спортсмен+род. (Июнь)"},
-            {"name": "Спортсмен + родитель - Июль 4-11 (161 990р.)", "price": "161 990р.", 
+            {"name": "Спортсмен + родитель - Июль 4-11", "price": "161 990р.", 
              "id": "sochi_family_july", "short": "Спортсмен+род. (Июль)"},
-            {"name": "Спортсмен + родитель - Август 1-8 (161 990р.)", "price": "161 990р.", 
+            {"name": "Спортсмен + родитель - Август 1-8", "price": "161 990р.", 
              "id": "sochi_family_august", "short": "Спортсмен+род. (Август)"},
-            {"name": "Сопровождающий - Май 02-08 (59 990р.)", "price": "59 990р.", 
+            {"name": "Сопровождающий - Май 02-08", "price": "59 990р.", 
              "id": "sochi_accompanist_may", "short": "Сопровожд. (Май)"},
-            {"name": "Сопровождающий - Июнь 19-27 (77 990р.)", "price": "77 990р.", 
+            {"name": "Сопровождающий - Июнь 19-27", "price": "77 990р.", 
              "id": "sochi_accompanist_june", "short": "Сопровожд. (Июнь)"},
-            {"name": "Сопровождающий - Июль 4-11 (68 990р.)", "price": "68 990р.", 
+            {"name": "Сопровождающий - Июль 4-11", "price": "68 990р.", 
              "id": "sochi_accompanist_july", "short": "Сопровожд. (Июль)"},
-            {"name": "Сопровождающий - Август 1-8 (68 990р.)", "price": "68 990р.", 
+            {"name": "Сопровождающий - Август 1-8", "price": "68 990р.", 
              "id": "sochi_accompanist_august", "short": "Сопровожд. (Август)"}
         ]
     }
@@ -176,7 +186,6 @@ def get_agree_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_sochi_contract_keyboard():
-    """Клавиатура для Сочи с договором"""
     keyboard = [
         [InlineKeyboardButton("📄 Скачать договор (PDF)", callback_data="sochi_download_contract")],
         [InlineKeyboardButton("✅ Я подписал договор", callback_data="sochi_contract_signed")]
@@ -184,7 +193,6 @@ def get_sochi_contract_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_payment_keyboard():
-    """Клавиатура с реквизитами и связью с админом"""
     keyboard = [
         [InlineKeyboardButton("💳 Реквизиты для оплаты", callback_data="show_requisites")],
         [InlineKeyboardButton("📞 Связаться с администратором", callback_data="contact_admin")]
@@ -192,7 +200,6 @@ def get_payment_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_receipt_keyboard():
-    """Клавиатура после показа реквизитов"""
     keyboard = [
         [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")],
         [InlineKeyboardButton("📞 Связаться с администратором", callback_data="contact_admin")]
@@ -200,17 +207,15 @@ def get_receipt_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_contact_admin_keyboard():
-    """Клавиатура с номером телефона и ссылкой на админа"""
+    """Кнопка перехода в чат с админом (через username)"""
     keyboard = [
-        [InlineKeyboardButton("📞 Написать администратору", url=f"tg://user?id={ADMIN_CHAT_ID}")],
-        [InlineKeyboardButton("📱 Позвонить", url=f"tel:{ADMIN_PHONE}")],
+        [InlineKeyboardButton("📞 Написать администратору", url=f"https://t.me/{ADMIN_USERNAME}")],
         [InlineKeyboardButton("🔙 Назад к услугам", callback_data="back_to_services")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /start"""
     context.user_data.clear()
     await update.message.reply_text(
         "🏕️ <b>Выберите КЭМП, который вас интересует:</b>",
@@ -219,7 +224,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор кэмпа"""
     query = update.callback_query
     await query.answer()
 
@@ -235,18 +239,17 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data["is_sochi"] = (camp_id == "sochi")
         
         if camp_id == "sochi":
-            # Для Сочи показываем договор и инструкцию
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
                 f"📍 {camp['address']}\n\n"
-                f"📄 <a href='{PDF_LINK}'>Договор: PDF (ООО ШМП)</a>\n\n"
+                f"📄 <a href='{PDF_LINK}'>Договор: PDF ({camp['legal_entity']})</a>\n\n"
                 f"<b>Необходимо:</b>\n"
                 f"1. Скачать договор себе на устройство\n"
                 f"2. Заполнить персональные данные в документе (отмечены жёлтым)\n"
                 f"3. Распечатать договор\n"
                 f"4. Подписать его\n"
-                f"5. Прислать скан подписанного договора в данный чат"
+                f"5. Прислать скан или фото ВСЕХ СТРАНИЦ подписанного договора в данный чат"
             )
             
             await query.edit_message_text(
@@ -256,7 +259,6 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 reply_markup=get_sochi_contract_keyboard()
             )
         else:
-            # Для городских кэмпов показываем оферту
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
@@ -273,31 +275,27 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
             )
 
 async def handle_sochi_contract(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка договора для Сочи"""
     query = update.callback_query
     await query.answer()
     
     if query.data == "sochi_download_contract":
-        # Отправляем ссылку на договор еще раз
         await query.message.reply_text(
             text=f"📄 <a href='{PDF_LINK}'>Скачать договор (PDF)</a>",
             parse_mode='HTML'
         )
         
     elif query.data == "sochi_contract_signed":
-        # Просим прислать скан договора
         await query.message.reply_text(
-            "📎 Пожалуйста, отправьте скан или фото подписанного договора"
+            "📎 Пожалуйста, отправьте скан или фото ВСЕХ СТРАНИЦ подписанного договора"
         )
         return SOCHI_WAIT_CONTRACT
 
 async def sochi_wait_contract(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получаем скан подписанного договора"""
     user = update.effective_user
     
     if not (update.message.document or update.message.photo):
         await update.message.reply_text(
-            "Пожалуйста, отправьте файл или фото подписанного договора"
+            "Пожалуйста, отправьте файл или фото ВСЕХ СТРАНИЦ подписанного договора"
         )
         return SOCHI_WAIT_CONTRACT
     
@@ -328,7 +326,8 @@ async def sochi_wait_contract(update: Update, context: ContextTypes.DEFAULT_TYPE
         
         await update.message.reply_text(
             "✅ Спасибо! Договор получен.\n\n"
-            "📝 Для завершения регистрации введите <b>ФИО участника</b>:",
+            "📝 Шаг 1 из 4\n\n"
+            "Введите <b>ФИО участника</b>:",
             parse_mode='HTML'
         )
         return SOCHI_FIO
@@ -337,22 +336,22 @@ async def sochi_wait_contract(update: Update, context: ContextTypes.DEFAULT_TYPE
         logger.error(f"Ошибка при отправке договора: {e}")
         await update.message.reply_text(
             "✅ Спасибо! Договор получен.\n\n"
-            "📝 Для завершения регистрации введите <b>ФИО участника</b>:",
+            "📝 Шаг 1 из 4\n\n"
+            "Введите <b>ФИО участника</b>:",
             parse_mode='HTML'
         )
         return SOCHI_FIO
 
 async def sochi_fio(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получаем ФИО участника для Сочи"""
     context.user_data["sochi_fio"] = update.message.text
     await update.message.reply_text(
-        "📝 Введите <b>телефон для связи</b>:",
+        "📝 Шаг 2 из 4\n\n"
+        "Введите <b>ФИО плательщика</b>:",
         parse_mode='HTML'
     )
     return SOCHI_PHONE
 
 async def sochi_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получаем телефон для Сочи и переходим к выбору формата"""
     context.user_data["sochi_phone"] = update.message.text
     
     user = update.effective_user
@@ -389,7 +388,6 @@ async def sochi_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def handle_service_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор категории услуг"""
     query = update.callback_query
     await query.answer()
     
@@ -407,7 +405,6 @@ async def handle_service_category(update: Update, context: ContextTypes.DEFAULT_
     )
 
 async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор конкретной услуги"""
     query = update.callback_query
     await query.answer()
     
@@ -444,7 +441,6 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     )
 
 async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Согласие с офертой → выбор услуг (для городских кэмпов)"""
     query = update.callback_query
     await query.answer()
     
@@ -457,13 +453,15 @@ async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка оплаты"""
     query = update.callback_query
     await query.answer()
     
     if query.data == "show_requisites":
+        camp = context.user_data.get("selected_camp", {})
+        legal = camp.get("legal_entity", "Школа мяча")
+        
         await query.message.reply_text(
-            text=f"📄 <a href='{REQUISITES_LINK}'>Реквизиты \"Школа мяча\"</a>\n\n"
+            text=f"📄 <a href='{REQUISITES_LINK}'>Реквизиты \"{legal}\"</a>\n\n"
                  "⬇️ Для оплаты услуги нужно:\n"
                  "1️⃣ В назначении платежа указать ФИО участника + название услуги\n"
                  "2️⃣ Ввести верную сумму\n"
@@ -485,13 +483,11 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_contact_admin(update, context)
 
 async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка запроса связи с администратором"""
     query = update.callback_query
     user = update.effective_user
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     service = context.user_data.get("selected_service", {}).get("name", "Не выбрана")
     
-    # Отправляем уведомление админу
     notification = (f"📞 ЗАПРОС СВЯЗИ\n"
                    f"━━━━━━━━━━━━━━━\n"
                    f"👤 Пользователь: {user.full_name}\n"
@@ -510,17 +506,14 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
     except Exception as e:
         logger.error(f"Ошибка при уведомлении админа: {e}")
     
-    # Показываем пользователю контакты
     await query.message.reply_text(
         text=f"📞 <b>Связь с администратором</b>\n\n"
-             f"Телефон: <code>{ADMIN_PHONE}</code>\n\n"
              f"Нажмите кнопку ниже, чтобы написать администратору в Telegram:",
         parse_mode='HTML',
         reply_markup=get_contact_admin_keyboard()
     )
 
 async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат к услугам после контакта с админом"""
     query = update.callback_query
     await query.answer()
     
@@ -541,7 +534,6 @@ async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_
 
 # ========== ОБРАБОТЧИКИ ДЛЯ ПОШАГОВОГО СБОРА ДАННЫХ (ОПЛАТА) ==========
 async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получаем ФИО участника"""
     logger.info(f"Получено ФИО участника: {update.message.text}")
     context.user_data["fio_participant"] = update.message.text
     await update.message.reply_text(
@@ -552,7 +544,6 @@ async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return FIO_PAYER
 
 async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получаем ФИО плательщика"""
     logger.info(f"Получено ФИО плательщика: {update.message.text}")
     context.user_data["fio_payer"] = update.message.text
     await update.message.reply_text(
@@ -563,7 +554,6 @@ async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return PHONE
 
 async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получаем телефон"""
     logger.info(f"Получен телефон: {update.message.text}")
     context.user_data["phone"] = update.message.text
     await update.message.reply_text(
@@ -574,7 +564,6 @@ async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return RECEIPT_PHOTO
 
 async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получаем чек и отправляем админу"""
     user = update.effective_user
     logger.info(f"Получен чек от пользователя {user.id}")
     
@@ -621,7 +610,6 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 caption=caption
             )
         
-        # Убрано предложение связаться с админом после оплаты
         await update.message.reply_text(
             "✅ Спасибо! Чек получен и отправлен администратору.\n"
             "🌟 Спасибо, что выбираете Школа мяча 🌟"
@@ -637,7 +625,6 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена операции"""
     await update.message.reply_text(
         "Операция отменена. Нажмите /start чтобы начать заново."
     )
@@ -645,20 +632,16 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик ошибок"""
     logger.error(f"Ошибка: {context.error}")
 
 # ========== ЗАПУСК ==========
 def main():
-    """Запуск бота"""
     logger.info("🚀 Запуск бота...")
     logger.info(f"👤 Администратор ID: {ADMIN_CHAT_ID}")
-    logger.info(f"📞 Телефон администратора: {ADMIN_PHONE}")
     
     try:
         application = Application.builder().token(BOT_TOKEN).build()
         
-        # ConversationHandler для оплаты
         payment_conv_handler = ConversationHandler(
             entry_points=[CallbackQueryHandler(handle_payment, pattern='^send_receipt$')],
             states={
@@ -672,7 +655,6 @@ def main():
             persistent=False,
         )
         
-        # ConversationHandler для Сочи
         sochi_conv_handler = ConversationHandler(
             entry_points=[CallbackQueryHandler(handle_sochi_contract, pattern='^sochi_contract_signed$')],
             states={
@@ -685,7 +667,6 @@ def main():
             persistent=False,
         )
         
-        # Добавляем обработчики
         application.add_handler(CommandHandler('start', start))
         application.add_handler(CommandHandler('cancel', cancel))
         application.add_handler(payment_conv_handler)

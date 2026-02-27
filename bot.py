@@ -14,11 +14,11 @@ ADMIN_PHONE = "89855796779"
 
 # Состояния для ConversationHandler
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, RECEIPT_PHOTO) = range(4)
-# Состояния для Сочи
-(SOCHI_WAIT_CONTRACT, SOCHI_FIO, SOCHI_PHONE) = range(4, 7)
+# Состояния для Сочи (только ожидание скана)
+SOCHI_WAIT_CONTRACT = 4
 
 # ========== ДАННЫЕ ==========
-PDF_LINK = "https://clck.ru/3RuZKG"  # базовая ссылка
+PDF_LINK = "https://clck.ru/3RuZKG"
 REQUISITES_LINK = PDF_LINK
 
 # ========== ОБНОВЛЕННЫЕ ДАННЫЕ КЭМПОВ (версия 27.02) ==========
@@ -324,66 +324,22 @@ async def sochi_wait_contract(update: Update, context: ContextTypes.DEFAULT_TYPE
                 caption=caption
             )
         
+        # ✅ Сразу переходим к выбору формата поездки, без запроса ФИО/телефона
         await update.message.reply_text(
             "✅ Спасибо! Договор получен.\n\n"
-            "📝 Шаг 1 из 4\n\n"
-            "Введите <b>ФИО участника</b>:",
-            parse_mode='HTML'
+            "<b>Какой формат поездки вы выбираете?🌝</b>",
+            parse_mode='HTML',
+            reply_markup=get_services_keyboard("camp", is_sochi=True)
         )
-        return SOCHI_FIO
         
     except Exception as e:
         logger.error(f"Ошибка при отправке договора: {e}")
         await update.message.reply_text(
             "✅ Спасибо! Договор получен.\n\n"
-            "📝 Шаг 1 из 4\n\n"
-            "Введите <b>ФИО участника</b>:",
-            parse_mode='HTML'
+            "<b>Какой формат поездки вы выбираете?🌝</b>",
+            parse_mode='HTML',
+            reply_markup=get_services_keyboard("camp", is_sochi=True)
         )
-        return SOCHI_FIO
-
-async def sochi_fio(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["sochi_fio"] = update.message.text
-    await update.message.reply_text(
-        "📝 Шаг 2 из 4\n\n"
-        "Введите <b>ФИО плательщика</b>:",
-        parse_mode='HTML'
-    )
-    return SOCHI_PHONE
-
-async def sochi_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["sochi_phone"] = update.message.text
-    
-    user = update.effective_user
-    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
-    fio = context.user_data.get("sochi_fio", "Не указано")
-    phone = context.user_data.get("sochi_phone", "Не указано")
-    
-    info_caption = (f"📋 Регистрация на Сочи\n"
-                   f"━━━━━━━━━━━━━━━\n"
-                   f"👤 Пользователь: {user.full_name}\n"
-                   f"🆔 ID: {user.id}\n"
-                   f"📱 Username: @{user.username or 'нет'}\n"
-                   f"━━━━━━━━━━━━━━━\n"
-                   f"🏕️ Кэмп: {camp}\n"
-                   f"👶 ФИО участника: {fio}\n"
-                   f"📞 Телефон: {phone}\n"
-                   f"━━━━━━━━━━━━━━━")
-    
-    try:
-        await context.bot.send_message(
-            chat_id=ADMIN_CHAT_ID,
-            text=info_caption
-        )
-    except Exception as e:
-        logger.error(f"Ошибка при отправке данных: {e}")
-    
-    await update.message.reply_text(
-        "✅ Спасибо! Данные сохранены.\n\n"
-        "<b>Какой формат поездки вы выбираете?🌝</b>",
-        parse_mode='HTML',
-        reply_markup=get_services_keyboard("camp", is_sochi=True)
-    )
     
     return ConversationHandler.END
 
@@ -659,8 +615,6 @@ def main():
             entry_points=[CallbackQueryHandler(handle_sochi_contract, pattern='^sochi_contract_signed$')],
             states={
                 SOCHI_WAIT_CONTRACT: [MessageHandler(filters.PHOTO | filters.Document.ALL, sochi_wait_contract)],
-                SOCHI_FIO: [MessageHandler(filters.TEXT & ~filters.COMMAND, sochi_fio)],
-                SOCHI_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, sochi_phone)],
             },
             fallbacks=[CommandHandler('cancel', cancel)],
             name="sochi_conversation",

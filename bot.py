@@ -2,7 +2,7 @@ import os
 import logging
 import sys
 import re
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler, MessageHandler,
     filters, ContextTypes, ConversationHandler
@@ -69,6 +69,10 @@ CAMPS = [
 ]
 
 # ========== УСЛУГИ ==========
+def format_price(price: int) -> str:
+    """Форматирует цену с пробелом между тысячами и символом ₽"""
+    return f"{price:,}".replace(",", " ") + "₽"
+
 def get_camp_price_multiplier(camp_id: str) -> int:
     """Возвращает множитель цены для кэмпа."""
     if camp_id == "khamovniki":
@@ -78,7 +82,7 @@ def get_camp_price_multiplier(camp_id: str) -> int:
     else:
         return 0  # 0 как маркер, что используются базовые цены 39 990
 
-# Базовые услуги (только основные категории)
+# Базовые услуги (только основные категории) с ценами
 BASE_SERVICES = {
     "camp": {
         "name": "🏕️ КЭМП",
@@ -142,7 +146,7 @@ BASE_SERVICES = {
     }
 }
 
-# Подменю для 10 дней (смены)
+# Подменю для 10 дней (смены) — БЕЗ ЦЕНЫ в кнопках
 CAMP_SHIFTS = [
     {"name": "смена 1", "dates": "01-12 июнь", "id": "camp_10_days_1"},
     {"name": "смена 2", "dates": "15-26 июнь", "id": "camp_10_days_2"},
@@ -153,15 +157,15 @@ CAMP_SHIFTS = [
     {"name": "смена 7", "dates": "24-27 авг", "id": "camp_10_days_7"}
 ]
 
-# Для Хамовников повышенные цены
+# Для Хамовников повышенные цены (тоже БЕЗ ЦЕНЫ в кнопках смен)
 KHAMOVNIKI_SHIFTS = [
-    {"name": "смена 1", "dates": "01-12 июнь", "price": 69990, "id": "camp_10_days_1"},
-    {"name": "смена 2", "dates": "15-26 июнь", "price": 69990, "id": "camp_10_days_2"},
-    {"name": "смена 3", "dates": "29.06-10.07", "price": 69990, "id": "camp_10_days_3"},
-    {"name": "смена 4", "dates": "13-24 июль", "price": 69990, "id": "camp_10_days_4"},
-    {"name": "смена 5", "dates": "27.07-07.08", "price": 69990, "id": "camp_10_days_5"},
-    {"name": "смена 6", "dates": "10-21 авг", "price": 69990, "id": "camp_10_days_6"},
-    {"name": "смена 7", "dates": "24-27 авг", "price": 69990, "id": "camp_10_days_7"}
+    {"name": "смена 1", "dates": "01-12 июнь", "id": "camp_10_days_1"},
+    {"name": "смена 2", "dates": "15-26 июнь", "id": "camp_10_days_2"},
+    {"name": "смена 3", "dates": "29.06-10.07", "id": "camp_10_days_3"},
+    {"name": "смена 4", "dates": "13-24 июль", "id": "camp_10_days_4"},
+    {"name": "смена 5", "dates": "27.07-07.08", "id": "camp_10_days_5"},
+    {"name": "смена 6", "dates": "10-21 авг", "id": "camp_10_days_6"},
+    {"name": "смена 7", "dates": "24-27 авг", "id": "camp_10_days_7"}
 ]
 
 KHAMOVNIKI_SERVICES = {
@@ -244,7 +248,7 @@ def get_service_categories_keyboard(is_sochi=False):
     return InlineKeyboardMarkup(keyboard)
 
 def get_base_services_keyboard(category, camp_id=None):
-    """Показывает основные услуги (без подменю смен)"""
+    """Показывает основные услуги (с ценами)"""
     keyboard = []
     
     if camp_id == "khamovniki" and category in KHAMOVNIKI_SERVICES:
@@ -262,9 +266,9 @@ def get_base_services_keyboard(category, camp_id=None):
             else:
                 price = 0
             
-            price_text = f"{price}р."
+            price_text = format_price(price)
             if option.get("price_per"):
-                price_text += f" ({option['price_per']}р./занятие)"
+                price_text += f" ({format_price(option['price_per'])}/занятие)"
             
             button_text = f"{option['name']} - {price_text}"
             keyboard.append([InlineKeyboardButton(button_text, callback_data=f"base_service:{option['id']}")])
@@ -273,33 +277,29 @@ def get_base_services_keyboard(category, camp_id=None):
     return InlineKeyboardMarkup(keyboard)
 
 def get_camp_shifts_keyboard(camp_id=None):
-    """Показывает список смен для 10 дней"""
+    """Показывает список смен для 10 дней — БЕЗ ЦЕНЫ, дата в скобках"""
     keyboard = []
     
     if camp_id == "khamovniki":
         shifts = KHAMOVNIKI_SHIFTS
         for shift in shifts:
-            button_text = f"{shift['name']} {shift['dates']} - {shift['price']}р."
+            button_text = f"{shift['name']} ({shift['dates']})"
             keyboard.append([InlineKeyboardButton(button_text, callback_data=f"service:{shift['id']}")])
     else:
         shifts = CAMP_SHIFTS
-        multiplier = get_camp_price_multiplier(camp_id)
-        base_price = 39990
-        price = base_price if multiplier == 0 else int(base_price * multiplier)
-        
         for shift in shifts:
-            button_text = f"{shift['name']} {shift['dates']} - {price}р."
+            button_text = f"{shift['name']} ({shift['dates']})"
             keyboard.append([InlineKeyboardButton(button_text, callback_data=f"service:{shift['id']}")])
     
     keyboard.append([InlineKeyboardButton("🔙 Назад к услугам", callback_data="back_to_base_services")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_sochi_services_keyboard():
-    """Показывает услуги для Сочи"""
+    """Показывает услуги для Сочи — с ценами"""
     keyboard = []
     for group in SOCHI_SERVICES["camp"]["options"]:
         for option in group["options"]:
-            button_text = f"{group['category']} - {option['name']} - {option['price']}р."
+            button_text = f"{group['category']} - {option['name']} - {format_price(option['price'])}"
             keyboard.append([InlineKeyboardButton(button_text, callback_data=f"service:{option['id']}")])
     
     keyboard.append([InlineKeyboardButton("🔙 Назад к категориям", callback_data="back_to_categories")])
@@ -317,14 +317,12 @@ def get_sochi_contract_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_payment_keyboard():
-    # Только кнопка оплаты, без вопроса администратору
     keyboard = [
         [InlineKeyboardButton("💳 Оплатить", callback_data="show_requisites")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_receipt_keyboard():
-    # После реквизитов появляется кнопка отправки чека и вопрос админу
     keyboard = [
         [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")],
         [InlineKeyboardButton("📞 Задать вопрос администратору", callback_data="contact_admin")]
@@ -347,24 +345,22 @@ def get_service_price(service_id: str, camp_id: str = None) -> int:
                 if opt["id"] == service_id:
                     return opt["price"]
     elif camp_id == "khamovniki":
-        # Проверяем смены
+        # Проверяем смены (10 дней)
         for shift in KHAMOVNIKI_SHIFTS:
             if shift["id"] == service_id:
-                return shift["price"]
+                return 69990  # цена для Хамовников
         # Проверяем другие услуги
         for cat in KHAMOVNIKI_SERVICES.values():
             for opt in cat["options"]:
                 if opt["id"] == service_id:
                     return opt["price"]
     else:
-        # Проверяем смены
-        multiplier = get_camp_price_multiplier(camp_id)
-        base_price = 39990
-        price = base_price if multiplier == 0 else int(base_price * multiplier)
-        
+        # Проверяем смены (10 дней)
         for shift in CAMP_SHIFTS:
             if shift["id"] == service_id:
-                return price
+                multiplier = get_camp_price_multiplier(camp_id)
+                base_price = 39990
+                return base_price if multiplier == 0 else int(base_price * multiplier)
         
         # Проверяем другие услуги
         for cat in BASE_SERVICES.values():
@@ -387,7 +383,7 @@ def get_service_name(service_id: str, camp_id: str = None) -> str:
     elif camp_id == "khamovniki":
         for shift in KHAMOVNIKI_SHIFTS:
             if shift["id"] == service_id:
-                return f"10 дней {shift['name']} {shift['dates']}"
+                return f"10 дней {shift['name']} ({shift['dates']})"
         for cat in KHAMOVNIKI_SERVICES.values():
             for opt in cat["options"]:
                 if opt["id"] == service_id:
@@ -395,7 +391,7 @@ def get_service_name(service_id: str, camp_id: str = None) -> str:
     else:
         for shift in CAMP_SHIFTS:
             if shift["id"] == service_id:
-                return f"10 дней {shift['name']} {shift['dates']}"
+                return f"10 дней {shift['name']} ({shift['dates']})"
         for cat in BASE_SERVICES.values():
             for opt in cat["options"]:
                 if opt["id"] == service_id:
@@ -582,7 +578,7 @@ async def handle_base_service(update: Update, context: ContextTypes.DEFAULT_TYPE
     camp = context.user_data.get("selected_camp")
     
     if service_id == "camp_10_days":
-        # Показываем список смен
+        # Показываем список смен (без цен)
         await query.edit_message_text(
             text="<b>Выберите смену:</b>",
             parse_mode='HTML',
@@ -613,7 +609,7 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
         "price": price
     }
     
-    price_text = f"{price}р."
+    price_text = format_price(price)
     
     text = (
         f"<b>🏟 Вы выбрали УСЛУГУ:</b>\n"
@@ -760,8 +756,9 @@ async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["fio_payer"] = update.message.text
     await update.message.reply_text(
         "📝 Шаг 3 из 4\n\n"
-        "Введите <b>телефон для связи</b> (например, +79001234567):",
-        parse_mode='HTML'
+        "Введите <b>телефон для связи</b> (например, 89001234567):",
+        parse_mode='HTML',
+        reply_markup=ForceReply(input_field_placeholder="89001234567")
     )
     return PHONE
 
@@ -772,16 +769,16 @@ async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Простая проверка: удаляем все не-цифры и проверяем длину
     digits = re.sub(r'\D', '', phone_input)
     if len(digits) == 11 and digits.startswith(('7', '8')):
-        # Приводим к формату +7...
-        formatted = f"+7 {digits[1:4]}-{digits[4:7]}-{digits[7:9]}-{digits[9:11]}"
+        # Приводим к формату 8...
+        formatted = f"8{digits[1:4]}-{digits[4:7]}-{digits[7:9]}-{digits[9:11]}"
         context.user_data["phone"] = formatted
     elif len(digits) == 10:
         # Если ввели 10 цифр без кода
-        formatted = f"+7 {digits[0:3]}-{digits[3:6]}-{digits[6:8]}-{digits[8:10]}"
+        formatted = f"8{digits[0:3]}-{digits[3:6]}-{digits[6:8]}-{digits[8:10]}"
         context.user_data["phone"] = formatted
     else:
         await update.message.reply_text(
-            "Пожалуйста, введите корректный номер телефона (например, +79001234567)"
+            "Пожалуйста, введите корректный номер телефона (например, 89001234567)"
         )
         return PHONE
     
@@ -808,6 +805,7 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     service_data = context.user_data.get("selected_service", {})
     service_name = service_data.get("name", "Не выбрана")
+    service_price = service_data.get("price", 0)
     
     caption = (
         f"💰 НОВАЯ ОПЛАТА\n"
@@ -818,6 +816,7 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"━━━━━━━━━━━━━━━\n"
         f"🏕️ Кэмп: {camp}\n"
         f"📋 Услуга: {service_name}\n"
+        f"💵 Сумма: {format_price(service_price)}\n"
         f"━━━━━━━━━━━━━━━\n"
         f"👶 ФИО участника: {fio_participant}\n"
         f"👨 ФИО плательщика: {fio_payer}\n"

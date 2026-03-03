@@ -1,27 +1,30 @@
 import os
 import logging
 import sys
+import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes, ConversationHandler
+from telegram.ext import (
+    Application, CommandHandler, CallbackQueryHandler, MessageHandler,
+    filters, ContextTypes, ConversationHandler
+)
 
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 
-# 🛡️ ВАШ ID
-ADMIN_CHAT_ID = 42038232
-ADMIN_USERNAME = "Dmitry_Kh_87"  # без @
+# ВАШ ID
+ADMIN_CHAT_ID = 246014045
+ADMIN_USERNAME = "Dmitry_Kh_87"
 ADMIN_PHONE = "89855796779"
 
 # Состояния для ConversationHandler
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, RECEIPT_PHOTO) = range(4)
-# Состояния для Сочи (только ожидание скана)
 SOCHI_WAIT_CONTRACT = 4
 
 # ========== ДАННЫЕ ==========
 PDF_LINK = "https://clck.ru/3RuZKG"
 REQUISITES_LINK = PDF_LINK
 
-# ========== ОБНОВЛЕННЫЕ ДАННЫЕ КЭМПОВ (версия 27.02) ==========
+# ========== ДАННЫЕ КЭМПОВ ==========
 CAMPS = [
     {
         "name": "🏕️ Солнцево (городской)",
@@ -65,80 +68,181 @@ CAMPS = [
     }
 ]
 
-# ========== УСЛУГИ С ДАТАМИ ==========
+# ========== УСЛУГИ ==========
+def get_camp_price_multiplier(camp_id: str) -> int:
+    """Возвращает множитель цены для кэмпа."""
+    if camp_id == "khamovniki":
+        return 1
+    elif camp_id == "sochi":
+        return 1  # У Сочи свои цены в SOCHI_SERVICES
+    else:
+        return 0  # 0 как маркер, что используются базовые цены 39 990
+
+def format_service_name(service_type: str, camp_id: str = None) -> str:
+    """Форматирует название услуги в зависимости от кэмпа."""
+    if service_type == "camp_10_days":
+        return "10 дней"
+    elif service_type == "camp_1_day":
+        return "1 день"
+    return service_type
+
 SERVICES = {
     "camp": {
         "name": "🏕️ КЭМП",
         "options": [
-            {"name": "10 дней - смена 1 (01-12 июнь)", "price": "69 990р.", "id": "camp_10_days_1", 
-             "short": "Смена 1 (01-12 июнь)"},
-            {"name": "10 дней - смена 2 (15-26 июнь)", "price": "69 990р.", "id": "camp_10_days_2", 
-             "short": "Смена 2 (15-26 июнь)"},
-            {"name": "10 дней - смена 3 (29.06-10.07)", "price": "69 990р.", "id": "camp_10_days_3", 
-             "short": "Смена 3 (29.06-10.07)"},
-            {"name": "10 дней - смена 4 (13-24 июль)", "price": "69 990р.", "id": "camp_10_days_4", 
-             "short": "Смена 4 (13-24 июль)"},
-            {"name": "10 дней - смена 5 (27.07-07.08)", "price": "69 990р.", "id": "camp_10_days_5", 
-             "short": "Смена 5 (27.07-07.08)"},
-            {"name": "10 дней - смена 6 (10-21 авг)", "price": "69 990р.", "id": "camp_10_days_6", 
-             "short": "Смена 6 (10-21 авг)"},
-            {"name": "10 дней - смена 7 (24-27 авг)", "price": "69 990р.", "id": "camp_10_days_7", 
-             "short": "Смена 7 (24-27 авг)"},
-            {"name": "1 день", "price": "7 900р.", "id": "camp_1_day", 
-             "short": "1 день"}
+            {
+                "name": "10 дней - смена 1", "dates": "01-12 июнь", "base_price": 39990,
+                "id": "camp_10_days_1", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 2", "dates": "15-26 июнь", "base_price": 39990,
+                "id": "camp_10_days_2", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 3", "dates": "29.06-10.07", "base_price": 39990,
+                "id": "camp_10_days_3", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 4", "dates": "13-24 июль", "base_price": 39990,
+                "id": "camp_10_days_4", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 5", "dates": "27.07-07.08", "base_price": 39990,
+                "id": "camp_10_days_5", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 6", "dates": "10-21 авг", "base_price": 39990,
+                "id": "camp_10_days_6", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 7", "dates": "24-27 авг", "base_price": 39990,
+                "id": "camp_10_days_7", "type": "camp_10_days"
+            },
+            {
+                "name": "1 день", "dates": "", "base_price": 5990,
+                "id": "camp_1_day", "type": "camp_1_day"
+            }
         ]
     },
     "training": {
         "name": "⚽ ТРЕНИРОВКИ",
         "options": [
-            {"name": "Тренировка - 1 занятие", "price": "1 890р.", "id": "training_1", 
-             "short": "1 тренировка"},
-            {"name": "Абонемент - 5 занятий", "price": "7 450р. (1 490р./занятие)", "id": "training_5", 
-             "short": "Абонемент 5 занятий"},
-            {"name": "Абонемент - 10 занятий", "price": "12 900р. (1 290р./занятие)", "id": "training_10", 
-             "short": "Абонемент 10 занятий"}
+            {
+                "name": "тренировка - 1 шт", "base_price": 1600,
+                "id": "training_1", "type": "training_1"
+            },
+            {
+                "name": "абонемент - 5 занятий", "base_price": 7000, "price_per": 1400,
+                "id": "training_5", "type": "training_5"
+            },
+            {
+                "name": "абонемент - 10 занятий", "base_price": 11500, "price_per": 1150,
+                "id": "training_10", "type": "training_10"
+            }
         ]
     },
     "other": {
         "name": "📦 ПРОЧЕЕ",
         "options": [
-            {"name": "Оплата после пробного дня", "price": "65 000р.", "id": "trial_day", 
-             "short": "Пробный день"},
-            {"name": "Форма", "price": "4 500р.", "id": "uniform", 
-             "short": "Форма"}
+            {
+                "name": "оплата после \"пробного дня\"", "base_price": 39000,
+                "id": "trial_day", "type": "trial_day"
+            },
+            {
+                "name": "форма", "base_price": 4500,
+                "id": "uniform", "type": "uniform"
+            }
         ]
     }
 }
 
-# Для Сочи свои цены (с датами)
+# Для Хамовников повышенные цены
+KHAMOVNIKI_SERVICES = {
+    "camp": {
+        "name": "🏕️ КЭМП",
+        "options": [
+            {
+                "name": "10 дней - смена 1", "dates": "01-12 июнь", "price": 69990,
+                "id": "camp_10_days_1", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 2", "dates": "15-26 июнь", "price": 69990,
+                "id": "camp_10_days_2", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 3", "dates": "29.06-10.07", "price": 69990,
+                "id": "camp_10_days_3", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 4", "dates": "13-24 июль", "price": 69990,
+                "id": "camp_10_days_4", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 5", "dates": "27.07-07.08", "price": 69990,
+                "id": "camp_10_days_5", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 6", "dates": "10-21 авг", "price": 69990,
+                "id": "camp_10_days_6", "type": "camp_10_days"
+            },
+            {
+                "name": "10 дней - смена 7", "dates": "24-27 авг", "price": 69990,
+                "id": "camp_10_days_7", "type": "camp_10_days"
+            },
+            {
+                "name": "1 день", "dates": "", "price": 7900,
+                "id": "camp_1_day", "type": "camp_1_day"
+            }
+        ]
+    },
+    "training": {
+        "name": "⚽ ТРЕНИРОВКИ",
+        "options": [
+            {"name": "тренировка - 1 шт", "price": 1890, "id": "training_1", "type": "training_1"},
+            {"name": "абонемент - 5 занятий", "price": 7450, "price_per": 1490, "id": "training_5", "type": "training_5"},
+            {"name": "абонемент - 10 занятий", "price": 12900, "price_per": 1290, "id": "training_10", "type": "training_10"}
+        ]
+    },
+    "other": {
+        "name": "📦 ПРОЧЕЕ",
+        "options": [
+            {"name": "оплата после \"пробного дня\"", "price": 65000, "id": "trial_day", "type": "trial_day"},
+            {"name": "форма", "price": 4500, "id": "uniform", "type": "uniform"}
+        ]
+    }
+}
+
 SOCHI_SERVICES = {
     "camp": {
         "name": "🏕️ КЭМП в Сочи",
         "options": [
-            {"name": "Спортсмен (без сопровождения) - Май 02-08", "price": "89 990р.", 
-             "id": "sochi_sportsman_may", "short": "Спортсмен (Май 02-08)"},
-            {"name": "Спортсмен (без сопровождения) - Июнь 19-27", "price": "114 990р.", 
-             "id": "sochi_sportsman_june", "short": "Спортсмен (Июнь 19-27)"},
-            {"name": "Спортсмен (без сопровождения) - Июль 4-11", "price": "102 490р.", 
-             "id": "sochi_sportsman_july", "short": "Спортсмен (Июль 4-11)"},
-            {"name": "Спортсмен (без сопровождения) - Август 1-8", "price": "102 490р.", 
-             "id": "sochi_sportsman_august", "short": "Спортсмен (Август 1-8)"},
-            {"name": "Спортсмен + родитель - Май 02-08", "price": "139 990р.", 
-             "id": "sochi_family_may", "short": "Спортсмен+род. (Май)"},
-            {"name": "Спортсмен + родитель - Июнь 19-27", "price": "183 990р.", 
-             "id": "sochi_family_june", "short": "Спортсмен+род. (Июнь)"},
-            {"name": "Спортсмен + родитель - Июль 4-11", "price": "161 990р.", 
-             "id": "sochi_family_july", "short": "Спортсмен+род. (Июль)"},
-            {"name": "Спортсмен + родитель - Август 1-8", "price": "161 990р.", 
-             "id": "sochi_family_august", "short": "Спортсмен+род. (Август)"},
-            {"name": "Сопровождающий - Май 02-08", "price": "59 990р.", 
-             "id": "sochi_accompanist_may", "short": "Сопровожд. (Май)"},
-            {"name": "Сопровождающий - Июнь 19-27", "price": "77 990р.", 
-             "id": "sochi_accompanist_june", "short": "Сопровожд. (Июнь)"},
-            {"name": "Сопровождающий - Июль 4-11", "price": "68 990р.", 
-             "id": "sochi_accompanist_july", "short": "Сопровожд. (Июль)"},
-            {"name": "Сопровождающий - Август 1-8", "price": "68 990р.", 
-             "id": "sochi_accompanist_august", "short": "Сопровожд. (Август)"}
+            {
+                "category": "Спортсмен (без сопровождения)",
+                "options": [
+                    {"name": "Смена МАЙ 02-08", "price": 89990, "id": "sochi_sportsman_may"},
+                    {"name": "Смена ИЮНЬ 19-27", "price": 114990, "id": "sochi_sportsman_june"},
+                    {"name": "Смена ИЮЛЬ 4-11", "price": 102490, "id": "sochi_sportsman_july"},
+                    {"name": "Смена АВГУСТ 1-8", "price": 102490, "id": "sochi_sportsman_august"}
+                ]
+            },
+            {
+                "category": "Спортсмен + родитель",
+                "options": [
+                    {"name": "Смена МАЙ 02-08", "price": 139990, "id": "sochi_family_may"},
+                    {"name": "Смена ИЮНЬ 19-27", "price": 183990, "id": "sochi_family_june"},
+                    {"name": "Смена ИЮЛЬ 4-11", "price": 161990, "id": "sochi_family_july"},
+                    {"name": "Смена АВГУСТ 1-8", "price": 161990, "id": "sochi_family_august"}
+                ]
+            },
+            {
+                "category": "Сопровождающий",
+                "options": [
+                    {"name": "Смена МАЙ 02-08", "price": 59990, "id": "sochi_accompanist_may"},
+                    {"name": "Смена ИЮНЬ 19-27", "price": 77990, "id": "sochi_accompanist_june"},
+                    {"name": "Смена ИЮЛЬ 4-11", "price": 68990, "id": "sochi_accompanist_july"},
+                    {"name": "Смена АВГУСТ 1-8", "price": 68990, "id": "sochi_accompanist_august"}
+                ]
+            }
         ]
     }
 }
@@ -158,25 +262,58 @@ def get_camps_keyboard():
         keyboard.append([InlineKeyboardButton(camp["name"], callback_data=f"camp:{camp['id']}")])
     return InlineKeyboardMarkup(keyboard)
 
-def get_service_categories_keyboard():
-    keyboard = [
-        [InlineKeyboardButton("🏕️ КЭМП", callback_data="service_category:camp")],
-        [InlineKeyboardButton("⚽ ТРЕНИРОВКИ", callback_data="service_category:training")],
-        [InlineKeyboardButton("📦 ПРОЧЕЕ", callback_data="service_category:other")]
-    ]
+def get_service_categories_keyboard(is_sochi=False):
+    if is_sochi:
+        keyboard = [[InlineKeyboardButton("🏕️ КЭМП", callback_data="service_category:camp")]]
+    else:
+        keyboard = [
+            [InlineKeyboardButton("🏕️ КЭМП", callback_data="service_category:camp")],
+            [InlineKeyboardButton("⚽ ТРЕНИРОВКИ", callback_data="service_category:training")],
+            [InlineKeyboardButton("📦 ПРОЧЕЕ", callback_data="service_category:other")]
+        ]
     return InlineKeyboardMarkup(keyboard)
 
-def get_services_keyboard(category, is_sochi=False):
+def get_services_keyboard(category, is_sochi=False, camp_id=None):
     keyboard = []
-    services = SOCHI_SERVICES if is_sochi else SERVICES
     
-    if category in services:
-        for option in services[category]["options"]:
-            button_text = option.get("short", option["name"])
-            keyboard.append([InlineKeyboardButton(
-                f"{button_text} - {option['price']}", 
-                callback_data=f"service:{option['id']}"
-            )])
+    if is_sochi:
+        services = SOCHI_SERVICES
+        if category in services:
+            for group in services[category]["options"]:
+                for option in group["options"]:
+                    button_text = f"{group['category']} - {option['name']} - {option['price']}р."
+                    keyboard.append([InlineKeyboardButton(button_text, callback_data=f"service:{option['id']}")])
+    else:
+        # Выбираем нужный прайс
+        if camp_id == "khamovniki":
+            services = KHAMOVNIKI_SERVICES
+        else:
+            services = SERVICES
+        
+        if category in services:
+            for option in services[category]["options"]:
+                if "dates" in option and option["dates"]:
+                    full_text = f"{option['name']} {option['dates']}"
+                else:
+                    full_text = option['name']
+                
+                if "price" in option:
+                    price_text = f"{option['price']}р."
+                elif "base_price" in option:
+                    multiplier = get_camp_price_multiplier(camp_id)
+                    if multiplier == 0:
+                        price = option['base_price']
+                    else:
+                        price = int(option['base_price'] * multiplier)
+                    price_text = f"{price}р."
+                else:
+                    price_text = ""
+                
+                button_text = f"{full_text} - {price_text}"
+                if "price_per" in option:
+                    button_text += f" ({option['price_per']}р./занятие)"
+                
+                keyboard.append([InlineKeyboardButton(button_text, callback_data=f"service:{option['id']}")])
     
     keyboard.append([InlineKeyboardButton("🔙 Назад к категориям", callback_data="back_to_categories")])
     return InlineKeyboardMarkup(keyboard)
@@ -194,25 +331,63 @@ def get_sochi_contract_keyboard():
 
 def get_payment_keyboard():
     keyboard = [
-        [InlineKeyboardButton("💳 Реквизиты для оплаты", callback_data="show_requisites")],
-        [InlineKeyboardButton("📞 Связаться с администратором", callback_data="contact_admin")]
+        [InlineKeyboardButton("💳 Оплатить", callback_data="show_requisites")],
+        [InlineKeyboardButton("📞 Задать вопрос администратору", callback_data="contact_admin")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_receipt_keyboard():
     keyboard = [
         [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")],
-        [InlineKeyboardButton("📞 Связаться с администратором", callback_data="contact_admin")]
+        [InlineKeyboardButton("📞 Задать вопрос администратору", callback_data="contact_admin")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_contact_admin_keyboard():
-    """Кнопка перехода в чат с админом (через username)"""
     keyboard = [
         [InlineKeyboardButton("📞 Написать администратору", url=f"https://t.me/{ADMIN_USERNAME}")],
         [InlineKeyboardButton("🔙 Назад к услугам", callback_data="back_to_services")]
     ]
     return InlineKeyboardMarkup(keyboard)
+
+# ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+def validate_phone(phone: str) -> bool:
+    """Проверяет формат телефона: +7 900-234-45-45 или подобный."""
+    phone = phone.strip()
+    # Убираем возможные пробелы в начале/конце, но сохраняем формат для проверки
+    pattern = r'^\+7\s?\d{3}-\d{3}-\d{2}-\d{2}$|^\+7\d{10}$|^8\d{10}$'
+    return re.match(pattern, phone) is not None
+
+def format_phone_for_display(phone: str) -> str:
+    """Приводит телефон к единому формату для отображения."""
+    digits = re.sub(r'\D', '', phone)
+    if len(digits) == 11 and digits.startswith('8'):
+        digits = '7' + digits[1:]
+    if len(digits) == 11 and digits.startswith('7'):
+        return f"+7 {digits[1:4]}-{digits[4:7]}-{digits[7:9]}-{digits[9:11]}"
+    return phone
+
+def get_service_price(service_id: str, camp_id: str = None) -> int:
+    """Получает цену услуги с учётом кэмпа."""
+    if camp_id == "sochi":
+        for group in SOCHI_SERVICES["camp"]["options"]:
+            for opt in group["options"]:
+                if opt["id"] == service_id:
+                    return opt["price"]
+    elif camp_id == "khamovniki":
+        for cat in KHAMOVNIKI_SERVICES.values():
+            for opt in cat["options"]:
+                if opt["id"] == service_id:
+                    return opt["price"]
+    else:
+        for cat in SERVICES.values():
+            for opt in cat["options"]:
+                if opt["id"] == service_id:
+                    if "base_price" in opt:
+                        multiplier = get_camp_price_multiplier(camp_id)
+                        return opt["base_price"] if multiplier == 0 else int(opt["base_price"] * multiplier)
+                    return opt.get("price", 0)
+    return 0
 
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -249,7 +424,7 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 f"2. Заполнить персональные данные в документе (отмечены жёлтым)\n"
                 f"3. Распечатать договор\n"
                 f"4. Подписать его\n"
-                f"5. Прислать скан или фото ВСЕХ СТРАНИЦ подписанного договора в данный чат"
+                f"5. Прислать скан подписанного договора в данный чат"
             )
             
             await query.edit_message_text(
@@ -279,8 +454,9 @@ async def handle_sochi_contract(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
     
     if query.data == "sochi_download_contract":
+        # Только уведомление о скачивании, без лишней кнопки
         await query.message.reply_text(
-            text=f"📄 <a href='{PDF_LINK}'>Скачать договор (PDF)</a>",
+            text=f"📄 Ссылка для скачивания: {PDF_LINK}",
             parse_mode='HTML'
         )
         
@@ -324,7 +500,6 @@ async def sochi_wait_contract(update: Update, context: ContextTypes.DEFAULT_TYPE
                 caption=caption
             )
         
-        # ✅ Сразу переходим к выбору формата поездки, без запроса ФИО/телефона
         await update.message.reply_text(
             "✅ Спасибо! Договор получен.\n\n"
             "<b>Какой формат поездки вы выбираете?🌝</b>",
@@ -343,12 +518,28 @@ async def sochi_wait_contract(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     return ConversationHandler.END
 
+async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    await query.edit_message_reply_markup(reply_markup=None)
+    
+    camp = context.user_data.get("selected_camp", {})
+    is_sochi = context.user_data.get("is_sochi", False)
+    
+    await query.message.reply_text(
+        text="<b>Какая услуга вас интересует?</b>",
+        parse_mode='HTML',
+        reply_markup=get_service_categories_keyboard(is_sochi)
+    )
+
 async def handle_service_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
     category = query.data.split(":")[1]
     is_sochi = context.user_data.get("is_sochi", False)
+    camp = context.user_data.get("selected_camp", {})
     
     if is_sochi and category != "camp":
         await query.answer("Для Сочи доступен только формат КЭМП", show_alert=True)
@@ -357,7 +548,7 @@ async def handle_service_category(update: Update, context: ContextTypes.DEFAULT_
     await query.edit_message_text(
         text=f"<b>Выберите услугу:</b>",
         parse_mode='HTML',
-        reply_markup=get_services_keyboard(category, is_sochi)
+        reply_markup=get_services_keyboard(category, is_sochi, camp.get("id"))
     )
 
 async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -366,46 +557,70 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     
     service_id = query.data.split(":")[1]
     camp = context.user_data.get("selected_camp")
+    is_sochi = context.user_data.get("is_sochi", False)
     
     selected_service = None
-    services_dict = SOCHI_SERVICES if camp and camp["id"] == "sochi" else SERVICES
     
-    for category in services_dict.values():
-        for option in category["options"]:
-            if option["id"] == service_id:
-                selected_service = option
-                break
+    if is_sochi:
+        for group in SOCHI_SERVICES["camp"]["options"]:
+            for opt in group["options"]:
+                if opt["id"] == service_id:
+                    selected_service = {
+                        "name": f"{group['category']} - {opt['name']}",
+                        "price": opt["price"],
+                        "id": opt["id"]
+                    }
+                    break
+    else:
+        if camp and camp["id"] == "khamovniki":
+            services_dict = KHAMOVNIKI_SERVICES
+        else:
+            services_dict = SERVICES
+        
+        for category in services_dict.values():
+            for opt in category["options"]:
+                if opt["id"] == service_id:
+                    if "price" in opt:
+                        price = opt["price"]
+                    elif "base_price" in opt:
+                        multiplier = get_camp_price_multiplier(camp["id"] if camp else None)
+                        price = opt["base_price"] if multiplier == 0 else int(opt["base_price"] * multiplier)
+                    else:
+                        price = 0
+                    
+                    service_name = opt["name"]
+                    if "dates" in opt and opt["dates"]:
+                        service_name += f" {opt['dates']}"
+                    
+                    selected_service = {
+                        "name": service_name,
+                        "price": price,
+                        "id": opt["id"],
+                        "price_per": opt.get("price_per")
+                    }
+                    break
     
     if not selected_service:
+        await query.answer("Ошибка выбора услуги", show_alert=True)
         return
     
     context.user_data["selected_service"] = selected_service
     
-    service_full_name = selected_service.get("name", selected_service.get("short", ""))
+    price_text = f"{selected_service['price']}р."
+    if selected_service.get("price_per"):
+        price_text += f" ({selected_service['price_per']}р./занятие)"
     
     text = (
         f"<b>🏟 Вы выбрали УСЛУГУ:</b>\n"
-        f"{service_full_name}\n\n"
-        f"<b>📍 {camp['name']}</b>\n"
-        f"{camp['address']}"
+        f"{selected_service['name']} - {price_text}\n\n"
+        f"<b>📍 {camp['name'] if camp else 'Кэмп'}</b>\n"
+        f"{camp['address'] if camp else ''}"
     )
     
     await query.edit_message_text(
         text=text,
         parse_mode='HTML',
         reply_markup=get_payment_keyboard()
-    )
-
-async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    await query.edit_message_reply_markup(reply_markup=None)
-    
-    await query.message.reply_text(
-        text="<b>Какая услуга вас интересует?</b>",
-        parse_mode='HTML',
-        reply_markup=get_service_categories_keyboard()
     )
 
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -417,7 +632,7 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         legal = camp.get("legal_entity", "Школа мяча")
         
         await query.message.reply_text(
-            text=f"📄 <a href='{REQUISITES_LINK}'>Реквизиты \"{legal}\"</a>\n\n"
+            text=f"📄 <a href='{REQUISITES_LINK}'>PDF реквизиты \"{legal}\"</a>\n\n"
                  "⬇️ Для оплаты услуги нужно:\n"
                  "1️⃣ В назначении платежа указать ФИО участника + название услуги\n"
                  "2️⃣ Ввести верную сумму\n"
@@ -464,6 +679,7 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await query.message.reply_text(
         text=f"📞 <b>Связь с администратором</b>\n\n"
+             f"Телефон: 8-985-579-67-79\n\n"
              f"Нажмите кнопку ниже, чтобы написать администратору в Telegram:",
         parse_mode='HTML',
         reply_markup=get_contact_admin_keyboard()
@@ -474,6 +690,7 @@ async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_
     await query.answer()
     
     is_sochi = context.user_data.get("is_sochi", False)
+    camp = context.user_data.get("selected_camp", {})
     
     if is_sochi:
         await query.message.reply_text(
@@ -485,7 +702,7 @@ async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_
         await query.message.reply_text(
             text="<b>Какая услуга вас интересует?</b>",
             parse_mode='HTML',
-            reply_markup=get_service_categories_keyboard()
+            reply_markup=get_service_categories_keyboard(is_sochi)
         )
 
 # ========== ОБРАБОТЧИКИ ДЛЯ ПОШАГОВОГО СБОРА ДАННЫХ (ОПЛАТА) ==========
@@ -504,14 +721,27 @@ async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["fio_payer"] = update.message.text
     await update.message.reply_text(
         "📝 Шаг 3 из 4\n\n"
-        "Введите <b>телефон для связи</b>:",
+        "Введите <b>телефон для связи</b> в формате +7 900-234-45-45:",
         parse_mode='HTML'
     )
     return PHONE
 
 async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"Получен телефон: {update.message.text}")
-    context.user_data["phone"] = update.message.text
+    phone_input = update.message.text.strip()
+    logger.info(f"Получен телефон: {phone_input}")
+    
+    if not validate_phone(phone_input):
+        await update.message.reply_text(
+            "❌ Неверный формат телефона.\n\n"
+            "Пожалуйста, введите номер в формате:\n"
+            "<b>+7 900-234-45-45</b> или <b>+79002344545</b>\n\n"
+            "Попробуйте ещё раз:",
+            parse_mode='HTML'
+        )
+        return PHONE
+    
+    formatted_phone = format_phone_for_display(phone_input)
+    context.user_data["phone"] = formatted_phone
     await update.message.reply_text(
         "📝 Шаг 4 из 4\n\n"
         "Теперь отправьте <b>фото или скан чека об оплате</b>:",
@@ -534,7 +764,7 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phone = context.user_data.get("phone", "Не указано")
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     service_data = context.user_data.get("selected_service", {})
-    service_name = service_data.get("name", service_data.get("short", "Не выбрана"))
+    service_name = service_data.get("name", "Не выбрана")
     
     caption = (
         f"💰 НОВАЯ ОПЛАТА\n"
@@ -568,13 +798,13 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await update.message.reply_text(
             "✅ Спасибо! Чек получен и отправлен администратору.\n"
-            "🌟 Спасибо, что выбираете Школа мяча 🌟"
+            "🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     except Exception as e:
         logger.error(f"Ошибка при отправке админу: {e}")
         await update.message.reply_text(
             "✅ Спасибо! Ваш чек получен.\n"
-            "🌟 Спасибо, что выбираете Школа мяча 🌟"
+            "🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     
     context.user_data.clear()

@@ -78,7 +78,7 @@ def get_camp_price_multiplier(camp_id: str) -> int:
     if camp_id == "khamovniki":
         return 1
     elif camp_id == "sochi":
-        return 1  # У Сочи свои цены в SOCHI_SERVICES
+        return 1  # У Сочи свои цены
     else:
         return 0  # 0 как маркер, что используются базовые цены 39 990
 
@@ -146,7 +146,7 @@ BASE_SERVICES = {
     }
 }
 
-# Подменю для 10 дней (смены) — БЕЗ ЦЕНЫ в кнопках
+# Подменю для 10 дней (смены) — БЕЗ ЦЕНЫ в кнопках, даты в скобках
 CAMP_SHIFTS = [
     {"name": "смена 1", "dates": "01-12 июнь", "id": "camp_10_days_1"},
     {"name": "смена 2", "dates": "15-26 июнь", "id": "camp_10_days_2"},
@@ -186,10 +186,10 @@ KHAMOVNIKI_SERVICES = {
     }
 }
 
-# Сочи — двухуровневое меню
+# Сочи — двухуровневое меню с правильными названиями
 SOCHI_CATEGORIES = [
     {
-        "name": "Спортсмен (без сопровождения)",
+        "name": "«Спортсмен» (без сопровождения)",
         "id": "sochi_sportsman",
         "options": [
             {"name": "Смена МАЙ 02-08", "price": 89990, "id": "sochi_sportsman_may"},
@@ -199,7 +199,7 @@ SOCHI_CATEGORIES = [
         ]
     },
     {
-        "name": "Спортсмен + родитель",
+        "name": "«Спортсмен + родитель»",
         "id": "sochi_family",
         "options": [
             {"name": "Смена МАЙ 02-08", "price": 139990, "id": "sochi_family_may"},
@@ -209,7 +209,7 @@ SOCHI_CATEGORIES = [
         ]
     },
     {
-        "name": "Сопровождающий",
+        "name": "«Сопровождающий» (любой участник не принимающий участия в тренировках)",
         "id": "sochi_accompanist",
         "options": [
             {"name": "Смена МАЙ 02-08", "price": 59990, "id": "sochi_accompanist_may"},
@@ -297,7 +297,14 @@ def get_sochi_categories_keyboard():
     """Показывает категории для Сочи (без цен)"""
     keyboard = []
     for category in SOCHI_CATEGORIES:
-        keyboard.append([InlineKeyboardButton(category["name"], callback_data=f"sochi_category:{category['id']}")])
+        # Для длинных названий делаем перенос
+        name = category["name"]
+        if len(name) > 40:
+            # Простой перенос для очень длинных названий
+            parts = name.split(" (")
+            if len(parts) > 1:
+                name = f"{parts[0]}\n({parts[1]}"
+        keyboard.append([InlineKeyboardButton(name, callback_data=f"sochi_category:{category['id']}")])
     
     keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_categories")])
     return InlineKeyboardMarkup(keyboard)
@@ -327,11 +334,17 @@ def get_sochi_contract_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
-def get_contract_uploaded_keyboard():
-    """Кнопка для подтверждения загрузки всех страниц договора"""
-    keyboard = [
-        [InlineKeyboardButton("✅ Договор загружен", callback_data="contract_uploaded")]
-    ]
+def get_contract_uploaded_keyboard(has_files=False):
+    """Кнопка для подтверждения загрузки всех страниц договора.
+    Если has_files=False, кнопка неактивна (просто текст без callback)"""
+    if has_files:
+        keyboard = [
+            [InlineKeyboardButton("✅ Договор загружен", callback_data="contract_uploaded")]
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton("⏳ Сначала загрузите файлы", callback_data="noop")]
+        ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_payment_keyboard():
@@ -397,6 +410,7 @@ def get_service_name(service_id: str, camp_id: str = None) -> str:
         for category in SOCHI_CATEGORIES:
             for opt in category["options"]:
                 if opt["id"] == service_id:
+                    # Для отображения используем короткое название без цен
                     return f"{category['name']} - {opt['name']}"
     elif camp_id == "khamovniki":
         for shift in KHAMOVNIKI_SHIFTS:
@@ -439,6 +453,7 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
         
         context.user_data["selected_camp"] = camp
         context.user_data["is_sochi"] = (camp_id == "sochi")
+        context.user_data["sochi_files"] = []  # Для хранения загруженных файлов договора
         
         if camp_id == "sochi":
             text = (
@@ -451,7 +466,8 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 f"2. Заполнить персональные данные в документе (отмечены жёлтым)\n"
                 f"3. Распечатать договор\n"
                 f"4. Подписать его\n"
-                f"5. Прислать скан подписанного договора в данный чат"
+                f"5. Прислать скан или фото ВСЕХ СТРАНИЦ подписанного договора в данный чат.\n"
+                f"   После загрузки всех страниц нажмите кнопку «✅ Договор загружен»"
             )
             
             await query.edit_message_text(
@@ -481,30 +497,98 @@ async def handle_sochi_contract(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
     
     if query.data == "sochi_contract_signed":
+        # Показываем кнопку, но она неактивна, пока нет файлов
         await query.message.reply_text(
             "📎 Пожалуйста, отправьте скан или фото ВСЕХ СТРАНИЦ подписанного договора.\n"
-            "После загрузки всех страниц нажмите кнопку ниже:",
-            reply_markup=get_contract_uploaded_keyboard()
+            "После загрузки всех страниц кнопка станет активной.",
+            reply_markup=get_contract_uploaded_keyboard(has_files=False)
         )
-        # Переходим в состояние ожидания кнопки
         return SOCHI_WAIT_CONTRACT
+
+async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка загруженных файлов договора для Сочи"""
+    user = update.effective_user
+    
+    if not (update.message.document or update.message.photo):
+        # Если это не файл, игнорируем (обработчик сообщений не для этого состояния)
+        return SOCHI_WAIT_CONTRACT
+    
+    # Сохраняем информацию о файле
+    file_info = {
+        "type": "document" if update.message.document else "photo",
+        "file_id": update.message.document.file_id if update.message.document else update.message.photo[-1].file_id,
+        "message_id": update.message.message_id
+    }
+    
+    if "sochi_files" not in context.user_data:
+        context.user_data["sochi_files"] = []
+    
+    context.user_data["sochi_files"].append(file_info)
+    
+    # Отправляем файл админу
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    
+    caption = (f"📄 Страница договора (Сочи)\n"
+              f"━━━━━━━━━━━━━━━\n"
+              f"👤 Пользователь: {user.full_name}\n"
+              f"🆔 ID: {user.id}\n"
+              f"📱 Username: @{user.username or 'нет'}\n"
+              f"━━━━━━━━━━━━━━━\n"
+              f"🏕️ Кэмп: {camp}\n"
+              f"📄 Страница #{len(context.user_data['sochi_files'])}\n"
+              f"━━━━━━━━━━━━━━━")
+    
+    try:
+        if update.message.document:
+            await context.bot.send_document(
+                chat_id=ADMIN_CHAT_ID,
+                document=update.message.document.file_id,
+                caption=caption
+            )
+        else:
+            await context.bot.send_photo(
+                chat_id=ADMIN_CHAT_ID,
+                photo=update.message.photo[-1].file_id,
+                caption=caption
+            )
+    except Exception as e:
+        logger.error(f"Ошибка при отправке файла договора: {e}")
+    
+    # Обновляем клавиатуру - делаем кнопку активной, если есть файлы
+    await update.message.reply_text(
+        f"✅ Страница {len(context.user_data['sochi_files'])} получена. "
+        f"Если это последняя страница, нажмите кнопку ниже.",
+        reply_markup=get_contract_uploaded_keyboard(has_files=True)
+    )
+    
+    return SOCHI_WAIT_CONTRACT
 
 async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка нажатия кнопки 'Договор загружен'"""
     query = update.callback_query
     await query.answer()
     
+    # Проверяем, были ли загружены файлы
+    if not context.user_data.get("sochi_files"):
+        await query.message.edit_text(
+            "❌ Вы не загрузили ни одного файла. Пожалуйста, сначала загрузите скан договора.",
+            reply_markup=get_contract_uploaded_keyboard(has_files=False)
+        )
+        return SOCHI_WAIT_CONTRACT
+    
     user = update.effective_user
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    files_count = len(context.user_data["sochi_files"])
     
-    # Уведомляем админа, что пользователь загрузил договор
-    notification = (f"📄 ДОГОВОР ЗАГРУЖЕН\n"
+    # Уведомляем админа, что пользователь завершил загрузку
+    notification = (f"📄 ЗАГРУЗКА ДОГОВОРА ЗАВЕРШЕНА\n"
                    f"━━━━━━━━━━━━━━━\n"
                    f"👤 Пользователь: {user.full_name}\n"
                    f"🆔 ID: {user.id}\n"
                    f"📱 Username: @{user.username or 'нет'}\n"
                    f"━━━━━━━━━━━━━━━\n"
                    f"🏕️ Кэмп: {camp}\n"
+                   f"📄 Загружено страниц: {files_count}\n"
                    f"━━━━━━━━━━━━━━━")
     
     try:
@@ -521,6 +605,9 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
         parse_mode='HTML',
         reply_markup=get_sochi_categories_keyboard()
     )
+    
+    # Очищаем список файлов
+    context.user_data.pop("sochi_files", None)
     
     return ConversationHandler.END
 
@@ -582,7 +669,7 @@ async def handle_sochi_category(update: Update, context: ContextTypes.DEFAULT_TY
             break
     
     await query.edit_message_text(
-        text=f"<b>Выберите смену для {category_name}:</b>",
+        text=f"<b>Выберите смену:</b>",
         parse_mode='HTML',
         reply_markup=get_sochi_shifts_keyboard(category_id)
     )
@@ -682,6 +769,10 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     elif query.data == "contact_admin":
         await handle_contact_admin(update, context)
+    
+    elif query.data == "noop":
+        # Заглушка для неактивной кнопки
+        await query.answer("Сначала загрузите файлы договора", show_alert=True)
 
 async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -867,15 +958,14 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 caption=caption
             )
         
+        # Компактная версия благодарности
         await update.message.reply_text(
-            "✅ Спасибо! Чек получен и отправлен администратору.\n"
-            "🌟 Спасибо, что выбираете Школа мяча! 🌟"
+            "✅ Спасибо! Чек получен. 🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     except Exception as e:
         logger.error(f"Ошибка при отправке админу: {e}")
         await update.message.reply_text(
-            "✅ Спасибо! Ваш чек получен.\n"
-            "🌟 Спасибо, что выбираете Школа мяча! 🌟"
+            "✅ Спасибо! Ваш чек получен. 🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     
     context.user_data.clear()
@@ -915,7 +1005,11 @@ def main():
         sochi_conv_handler = ConversationHandler(
             entry_points=[CallbackQueryHandler(handle_sochi_contract, pattern='^sochi_contract_signed$')],
             states={
-                SOCHI_WAIT_CONTRACT: [CallbackQueryHandler(handle_contract_uploaded, pattern='^contract_uploaded$')],
+                SOCHI_WAIT_CONTRACT: [
+                    MessageHandler(filters.PHOTO | filters.Document.ALL, handle_sochi_file_upload),
+                    CallbackQueryHandler(handle_contract_uploaded, pattern='^contract_uploaded$'),
+                    CallbackQueryHandler(handle_payment, pattern='^noop$')
+                ],
             },
             fallbacks=[CommandHandler('cancel', cancel)],
             name="sochi_conversation",

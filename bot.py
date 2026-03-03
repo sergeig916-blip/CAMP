@@ -186,40 +186,39 @@ KHAMOVNIKI_SERVICES = {
     }
 }
 
-SOCHI_SERVICES = {
-    "camp": {
-        "name": "🏕️ КЭМП в Сочи",
+# Сочи — двухуровневое меню
+SOCHI_CATEGORIES = [
+    {
+        "name": "Спортсмен (без сопровождения)",
+        "id": "sochi_sportsman",
         "options": [
-            {
-                "category": "Спортсмен (без сопровождения)",
-                "options": [
-                    {"name": "Смена МАЙ 02-08", "price": 89990, "id": "sochi_sportsman_may"},
-                    {"name": "Смена ИЮНЬ 19-27", "price": 114990, "id": "sochi_sportsman_june"},
-                    {"name": "Смена ИЮЛЬ 4-11", "price": 102490, "id": "sochi_sportsman_july"},
-                    {"name": "Смена АВГУСТ 1-8", "price": 102490, "id": "sochi_sportsman_august"}
-                ]
-            },
-            {
-                "category": "Спортсмен + родитель",
-                "options": [
-                    {"name": "Смена МАЙ 02-08", "price": 139990, "id": "sochi_family_may"},
-                    {"name": "Смена ИЮНЬ 19-27", "price": 183990, "id": "sochi_family_june"},
-                    {"name": "Смена ИЮЛЬ 4-11", "price": 161990, "id": "sochi_family_july"},
-                    {"name": "Смена АВГУСТ 1-8", "price": 161990, "id": "sochi_family_august"}
-                ]
-            },
-            {
-                "category": "Сопровождающий",
-                "options": [
-                    {"name": "Смена МАЙ 02-08", "price": 59990, "id": "sochi_accompanist_may"},
-                    {"name": "Смена ИЮНЬ 19-27", "price": 77990, "id": "sochi_accompanist_june"},
-                    {"name": "Смена ИЮЛЬ 4-11", "price": 68990, "id": "sochi_accompanist_july"},
-                    {"name": "Смена АВГУСТ 1-8", "price": 68990, "id": "sochi_accompanist_august"}
-                ]
-            }
+            {"name": "Смена МАЙ 02-08", "price": 89990, "id": "sochi_sportsman_may"},
+            {"name": "Смена ИЮНЬ 19-27", "price": 114990, "id": "sochi_sportsman_june"},
+            {"name": "Смена ИЮЛЬ 4-11", "price": 102490, "id": "sochi_sportsman_july"},
+            {"name": "Смена АВГУСТ 1-8", "price": 102490, "id": "sochi_sportsman_august"}
+        ]
+    },
+    {
+        "name": "Спортсмен + родитель",
+        "id": "sochi_family",
+        "options": [
+            {"name": "Смена МАЙ 02-08", "price": 139990, "id": "sochi_family_may"},
+            {"name": "Смена ИЮНЬ 19-27", "price": 183990, "id": "sochi_family_june"},
+            {"name": "Смена ИЮЛЬ 4-11", "price": 161990, "id": "sochi_family_july"},
+            {"name": "Смена АВГУСТ 1-8", "price": 161990, "id": "sochi_family_august"}
+        ]
+    },
+    {
+        "name": "Сопровождающий",
+        "id": "sochi_accompanist",
+        "options": [
+            {"name": "Смена МАЙ 02-08", "price": 59990, "id": "sochi_accompanist_may"},
+            {"name": "Смена ИЮНЬ 19-27", "price": 77990, "id": "sochi_accompanist_june"},
+            {"name": "Смена ИЮЛЬ 4-11", "price": 68990, "id": "sochi_accompanist_july"},
+            {"name": "Смена АВГУСТ 1-8", "price": 68990, "id": "sochi_accompanist_august"}
         ]
     }
-}
+]
 
 # ========== ЛОГИРОВАНИЕ ==========
 logging.basicConfig(
@@ -294,15 +293,27 @@ def get_camp_shifts_keyboard(camp_id=None):
     keyboard.append([InlineKeyboardButton("🔙 Назад к услугам", callback_data="back_to_base_services")])
     return InlineKeyboardMarkup(keyboard)
 
-def get_sochi_services_keyboard():
-    """Показывает услуги для Сочи — с ценами"""
+def get_sochi_categories_keyboard():
+    """Показывает категории для Сочи (без цен)"""
     keyboard = []
-    for group in SOCHI_SERVICES["camp"]["options"]:
-        for option in group["options"]:
-            button_text = f"{group['category']} - {option['name']} - {format_price(option['price'])}"
-            keyboard.append([InlineKeyboardButton(button_text, callback_data=f"service:{option['id']}")])
+    for category in SOCHI_CATEGORIES:
+        keyboard.append([InlineKeyboardButton(category["name"], callback_data=f"sochi_category:{category['id']}")])
     
-    keyboard.append([InlineKeyboardButton("🔙 Назад к категориям", callback_data="back_to_categories")])
+    keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_categories")])
+    return InlineKeyboardMarkup(keyboard)
+
+def get_sochi_shifts_keyboard(category_id):
+    """Показывает смены для выбранной категории Сочи (с ценами)"""
+    keyboard = []
+    
+    for category in SOCHI_CATEGORIES:
+        if category["id"] == category_id:
+            for option in category["options"]:
+                button_text = f"{option['name']} - {format_price(option['price'])}"
+                keyboard.append([InlineKeyboardButton(button_text, callback_data=f"service:{option['id']}")])
+            break
+    
+    keyboard.append([InlineKeyboardButton("🔙 Назад к категориям", callback_data="back_to_sochi_categories")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_agree_keyboard():
@@ -310,9 +321,16 @@ def get_agree_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_sochi_contract_keyboard():
+    """Только кнопка подтверждения, без кнопки скачивания"""
     keyboard = [
-        [InlineKeyboardButton("📄 Скачать договор (PDF)", callback_data="sochi_download_contract")],
         [InlineKeyboardButton("✅ Я подписал договор", callback_data="sochi_contract_signed")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_contract_uploaded_keyboard():
+    """Кнопка для подтверждения загрузки всех страниц договора"""
+    keyboard = [
+        [InlineKeyboardButton("✅ Договор загружен", callback_data="contract_uploaded")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -340,8 +358,8 @@ def get_contact_admin_keyboard():
 def get_service_price(service_id: str, camp_id: str = None) -> int:
     """Получает цену услуги с учётом кэмпа."""
     if camp_id == "sochi":
-        for group in SOCHI_SERVICES["camp"]["options"]:
-            for opt in group["options"]:
+        for category in SOCHI_CATEGORIES:
+            for opt in category["options"]:
                 if opt["id"] == service_id:
                     return opt["price"]
     elif camp_id == "khamovniki":
@@ -376,10 +394,10 @@ def get_service_price(service_id: str, camp_id: str = None) -> int:
 def get_service_name(service_id: str, camp_id: str = None) -> str:
     """Получает название услуги по ID."""
     if camp_id == "sochi":
-        for group in SOCHI_SERVICES["camp"]["options"]:
-            for opt in group["options"]:
+        for category in SOCHI_CATEGORIES:
+            for opt in category["options"]:
                 if opt["id"] == service_id:
-                    return f"{group['category']} - {opt['name']}"
+                    return f"{category['name']} - {opt['name']}"
     elif camp_id == "khamovniki":
         for shift in KHAMOVNIKI_SHIFTS:
             if shift["id"] == service_id:
@@ -462,67 +480,47 @@ async def handle_sochi_contract(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
     
-    if query.data == "sochi_download_contract":
+    if query.data == "sochi_contract_signed":
         await query.message.reply_text(
-            text=f"📄 Ссылка для скачивания: {PDF_LINK}",
-            parse_mode='HTML'
+            "📎 Пожалуйста, отправьте скан или фото ВСЕХ СТРАНИЦ подписанного договора.\n"
+            "После загрузки всех страниц нажмите кнопку ниже:",
+            reply_markup=get_contract_uploaded_keyboard()
         )
-        
-    elif query.data == "sochi_contract_signed":
-        await query.message.reply_text(
-            "📎 Пожалуйста, отправьте скан или фото ВСЕХ СТРАНИЦ подписанного договора"
-        )
+        # Переходим в состояние ожидания кнопки
         return SOCHI_WAIT_CONTRACT
 
-async def sochi_wait_contract(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка нажатия кнопки 'Договор загружен'"""
+    query = update.callback_query
+    await query.answer()
+    
     user = update.effective_user
-    
-    if not (update.message.document or update.message.photo):
-        await update.message.reply_text(
-            "Пожалуйста, отправьте файл или фото ВСЕХ СТРАНИЦ подписанного договора"
-        )
-        return SOCHI_WAIT_CONTRACT
-    
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     
-    caption = (f"📄 Подписанный договор\n"
-              f"━━━━━━━━━━━━━━━\n"
-              f"👤 Пользователь: {user.full_name}\n"
-              f"🆔 ID: {user.id}\n"
-              f"📱 Username: @{user.username or 'нет'}\n"
-              f"━━━━━━━━━━━━━━━\n"
-              f"🏕️ Кэмп: {camp}\n"
-              f"━━━━━━━━━━━━━━━")
+    # Уведомляем админа, что пользователь загрузил договор
+    notification = (f"📄 ДОГОВОР ЗАГРУЖЕН\n"
+                   f"━━━━━━━━━━━━━━━\n"
+                   f"👤 Пользователь: {user.full_name}\n"
+                   f"🆔 ID: {user.id}\n"
+                   f"📱 Username: @{user.username or 'нет'}\n"
+                   f"━━━━━━━━━━━━━━━\n"
+                   f"🏕️ Кэмп: {camp}\n"
+                   f"━━━━━━━━━━━━━━━")
     
     try:
-        if update.message.document:
-            await context.bot.send_document(
-                chat_id=ADMIN_CHAT_ID,
-                document=update.message.document.file_id,
-                caption=caption
-            )
-        else:
-            await context.bot.send_photo(
-                chat_id=ADMIN_CHAT_ID,
-                photo=update.message.photo[-1].file_id,
-                caption=caption
-            )
-        
-        await update.message.reply_text(
-            "✅ Спасибо! Договор получен.\n\n"
-            "<b>Какой формат поездки вы выбираете?🌝</b>",
-            parse_mode='HTML',
-            reply_markup=get_sochi_services_keyboard()
+        await context.bot.send_message(
+            chat_id=ADMIN_CHAT_ID,
+            text=notification
         )
-        
     except Exception as e:
-        logger.error(f"Ошибка при отправке договора: {e}")
-        await update.message.reply_text(
-            "✅ Спасибо! Договор получен.\n\n"
-            "<b>Какой формат поездки вы выбираете?🌝</b>",
-            parse_mode='HTML',
-            reply_markup=get_sochi_services_keyboard()
-        )
+        logger.error(f"Ошибка при уведомлении админа: {e}")
+    
+    await query.message.edit_text(
+        "✅ Спасибо! Договор получен.\n\n"
+        "<b>Какой формат поездки вы выбираете?🌝</b>",
+        parse_mode='HTML',
+        reply_markup=get_sochi_categories_keyboard()
+    )
     
     return ConversationHandler.END
 
@@ -538,7 +536,7 @@ async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(
             text="<b>Какой формат поездки вы выбираете?🌝</b>",
             parse_mode='HTML',
-            reply_markup=get_sochi_services_keyboard()
+            reply_markup=get_sochi_categories_keyboard()
         )
     else:
         await query.message.reply_text(
@@ -560,7 +558,7 @@ async def handle_service_category(update: Update, context: ContextTypes.DEFAULT_
             await query.edit_message_text(
                 text="<b>Выберите формат поездки:</b>",
                 parse_mode='HTML',
-                reply_markup=get_sochi_services_keyboard()
+                reply_markup=get_sochi_categories_keyboard()
             )
     else:
         await query.edit_message_text(
@@ -568,6 +566,37 @@ async def handle_service_category(update: Update, context: ContextTypes.DEFAULT_
             parse_mode='HTML',
             reply_markup=get_base_services_keyboard(category, camp.get("id"))
         )
+
+async def handle_sochi_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Выбор категории в Сочи"""
+    query = update.callback_query
+    await query.answer()
+    
+    category_id = query.data.split(":")[1]
+    
+    # Находим название категории
+    category_name = ""
+    for cat in SOCHI_CATEGORIES:
+        if cat["id"] == category_id:
+            category_name = cat["name"]
+            break
+    
+    await query.edit_message_text(
+        text=f"<b>Выберите смену для {category_name}:</b>",
+        parse_mode='HTML',
+        reply_markup=get_sochi_shifts_keyboard(category_id)
+    )
+
+async def handle_back_to_sochi_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Возврат к категориям Сочи"""
+    query = update.callback_query
+    await query.answer()
+    
+    await query.edit_message_text(
+        text="<b>Какой формат поездки вы выбираете?🌝</b>",
+        parse_mode='HTML',
+        reply_markup=get_sochi_categories_keyboard()
+    )
 
 async def handle_base_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка выбора базовой услуги (10 дней или 1 день)"""
@@ -710,7 +739,7 @@ async def handle_back_to_categories(update: Update, context: ContextTypes.DEFAUL
         await query.edit_message_text(
             text="<b>Какой формат поездки вы выбираете?🌝</b>",
             parse_mode='HTML',
-            reply_markup=get_sochi_services_keyboard()
+            reply_markup=get_sochi_categories_keyboard()
         )
     else:
         await query.edit_message_text(
@@ -731,7 +760,7 @@ async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_
         await query.message.reply_text(
             text="<b>Какой формат поездки вы выбираете?🌝</b>",
             parse_mode='HTML',
-            reply_markup=get_sochi_services_keyboard()
+            reply_markup=get_sochi_categories_keyboard()
         )
     else:
         await query.message.reply_text(
@@ -886,7 +915,7 @@ def main():
         sochi_conv_handler = ConversationHandler(
             entry_points=[CallbackQueryHandler(handle_sochi_contract, pattern='^sochi_contract_signed$')],
             states={
-                SOCHI_WAIT_CONTRACT: [MessageHandler(filters.PHOTO | filters.Document.ALL, sochi_wait_contract)],
+                SOCHI_WAIT_CONTRACT: [CallbackQueryHandler(handle_contract_uploaded, pattern='^contract_uploaded$')],
             },
             fallbacks=[CommandHandler('cancel', cancel)],
             name="sochi_conversation",
@@ -900,10 +929,11 @@ def main():
         
         application.add_handler(CallbackQueryHandler(handle_camp_selection, pattern='^camp:'))
         application.add_handler(CallbackQueryHandler(handle_service_category, pattern='^service_category:'))
+        application.add_handler(CallbackQueryHandler(handle_sochi_category, pattern='^sochi_category:'))
+        application.add_handler(CallbackQueryHandler(handle_back_to_sochi_categories, pattern='^back_to_sochi_categories$'))
         application.add_handler(CallbackQueryHandler(handle_base_service, pattern='^base_service:'))
         application.add_handler(CallbackQueryHandler(handle_service_selection, pattern='^service:'))
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))
-        application.add_handler(CallbackQueryHandler(handle_sochi_contract, pattern='^sochi_download_contract$'))
         application.add_handler(CallbackQueryHandler(handle_payment, pattern='^(show_requisites|send_receipt|contact_admin)$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_base_services, pattern='^back_to_base_services$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_categories, pattern='^back_to_categories$'))

@@ -12,7 +12,7 @@ from telegram.ext import (
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 
 # ВАШ ID
-ADMIN_CHAT_ID = 42038232
+ADMIN_CHAT_ID = 246014045
 ADMIN_USERNAME = "Dmitry_Kh_87"
 ADMIN_PHONE = "89855796779"
 
@@ -241,6 +241,7 @@ def get_sochi_pd_agree_keyboard():
     """Клавиатура согласия на ПД для Сочи"""
     keyboard = [
         [InlineKeyboardButton("✅ Даю согласие на обработку персональных данных", callback_data="sochi_pd_agree")],
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
         [InlineKeyboardButton("🔙 Назад к программам", callback_data="back_to_camps")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -248,16 +249,19 @@ def get_sochi_pd_agree_keyboard():
 def get_sochi_email_sent_keyboard():
     """Клавиатура после отправки email"""
     keyboard = [
-        [InlineKeyboardButton("✅ Я получил и подписал договор", callback_data="sochi_got_contract")]
+        [InlineKeyboardButton("✅ Я получил и подписал договор", callback_data="sochi_got_contract")],
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_contract_upload_keyboard(has_files=False):
     """Кнопка загрузки договора"""
+    keyboard = []
     if has_files:
-        keyboard = [[InlineKeyboardButton("✅ Договор загружен", callback_data="contract_uploaded")]]
+        keyboard.append([InlineKeyboardButton("✅ Договор загружен", callback_data="contract_uploaded")])
     else:
-        keyboard = [[InlineKeyboardButton("⏳ Сначала загрузите файлы", callback_data="noop")]]
+        keyboard.append([InlineKeyboardButton("⏳ Сначала загрузите файлы", callback_data="noop")])
+    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_sochi_categories_keyboard():
@@ -270,6 +274,7 @@ def get_sochi_categories_keyboard():
             name = cat["name"][:40] + "…"
         keyboard.append([InlineKeyboardButton(name, callback_data=f"sochi_category:{cat['id']}")])
     
+    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
     keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_main_menu")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -285,6 +290,7 @@ def get_sochi_shifts_keyboard(category_id):
                 )])
             break
     
+    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
     keyboard.append([InlineKeyboardButton("🔙 Назад к категориям", callback_data="back_to_sochi_categories")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -369,8 +375,19 @@ def get_payment_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_receipt_keyboard():
-    """Кнопка отправки чека"""
-    keyboard = [[InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")]]
+    """Кнопки после показа реквизитов"""
+    keyboard = [
+        [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")],
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_contact_admin_keyboard():
+    """Кнопка связи с менеджером"""
+    keyboard = [
+        [InlineKeyboardButton("📞 Написать менеджеру", url=f"https://t.me/{ADMIN_USERNAME}")],
+        [InlineKeyboardButton("🔙 Назад к услугам", callback_data="back_to_services")]
+    ]
     return InlineKeyboardMarkup(keyboard)
 
 # ========== ОБРАБОТЧИКИ ==========
@@ -439,7 +456,10 @@ async def handle_sochi_pd_agree(update: Update, context: ContextTypes.DEFAULT_TY
     
     await query.edit_message_text(
         text="📝 Введите ваш email для получения договора:",
-        parse_mode='HTML'
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")
+        ]])
     )
     return SOCHI_EMAIL
 
@@ -700,32 +720,17 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
         "price": price
     }
     
-    if camp["id"] == "sochi":
-        # Для Сочи после выбора смены — сразу оплата
-        await query.edit_message_text(
-            text=(
-                f"<b>🏟 Вы выбрали:</b>\n"
-                f"{service_name} - {format_price(price)}\n\n"
-                f"<b>📍 {camp['name']}</b>\n"
-                f"{camp['address']}"
-            ),
-            parse_mode='HTML',
-            reply_markup=get_payment_keyboard()
-        )
-        return ConversationHandler.END
-    else:
-        # Для обычных программ
-        await query.edit_message_text(
-            text=(
-                f"<b>🏟 Вы выбрали УСЛУГУ:</b>\n"
-                f"{service_name} - {format_price(price)}\n\n"
-                f"<b>📍 {camp['name']}</b>\n"
-                f"{camp['address']}"
-            ),
-            parse_mode='HTML',
-            reply_markup=get_payment_keyboard()
-        )
-        return ConversationHandler.END
+    await query.edit_message_text(
+        text=(
+            f"<b>🏟 Вы выбрали:</b>\n"
+            f"{service_name} - {format_price(price)}\n\n"
+            f"<b>📍 {camp['name']}</b>\n"
+            f"{camp['address']}"
+        ),
+        parse_mode='HTML',
+        reply_markup=get_payment_keyboard()
+    )
+    return ConversationHandler.END
 
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка оплаты"""
@@ -763,6 +768,42 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='HTML'
         )
         return FIO_PARTICIPANT
+    
+    elif query.data == "contact_admin":
+        await handle_contact_admin(update, context)
+
+async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Связь с менеджером"""
+    query = update.callback_query
+    user = update.effective_user
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    service = context.user_data.get("selected_service", {}).get("name", "Не выбрана")
+    
+    notification = (f"📞 ЗАПРОС СВЯЗИ\n"
+                   f"━━━━━━━━━━━━━━━\n"
+                   f"👤 Пользователь: {user.full_name}\n"
+                   f"🆔 ID: {user.id}\n"
+                   f"📱 Username: @{user.username or 'нет'}\n"
+                   f"━━━━━━━━━━━━━━━\n"
+                   f"🏕️ Программа: {camp}\n"
+                   f"📋 Услуга: {service}\n"
+                   f"━━━━━━━━━━━━━━━")
+    
+    try:
+        await context.bot.send_message(
+            chat_id=ADMIN_CHAT_ID,
+            text=notification
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при уведомлении админа: {e}")
+    
+    await query.message.reply_text(
+        text=f"📞 <b>Связь с менеджером</b>\n\n"
+             f"Телефон: 8-985-579-67-79\n\n"
+             f"Нажмите кнопку ниже, чтобы написать менеджеру в Telegram:",
+        parse_mode='HTML',
+        reply_markup=get_contact_admin_keyboard()
+    )
 
 async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Шаг 1: ФИО участника"""
@@ -938,6 +979,27 @@ async def handle_back_to_sochi_categories(update: Update, context: ContextTypes.
         reply_markup=get_sochi_categories_keyboard()
     )
 
+async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Возврат к услугам после контакта с менеджером"""
+    query = update.callback_query
+    await query.answer()
+    
+    camp = context.user_data.get("selected_camp")
+    is_sochi = context.user_data.get("is_sochi", False)
+    
+    if is_sochi:
+        await query.message.reply_text(
+            text="<b>Выберите тип участия:</b>",
+            parse_mode='HTML',
+            reply_markup=get_sochi_categories_keyboard()
+        )
+    else:
+        await query.message.reply_text(
+            text="<b>Какая услуга вас интересует?</b>",
+            parse_mode='HTML',
+            reply_markup=get_camp_main_menu_keyboard(camp["id"])
+        )
+
 async def noop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Заглушка для неактивных кнопок"""
     query = update.callback_query
@@ -1017,11 +1079,12 @@ def main():
         application.add_handler(CallbackQueryHandler(handle_base_service, pattern='^base_service:'))
         application.add_handler(CallbackQueryHandler(handle_sochi_category, pattern='^sochi_category:'))
         application.add_handler(CallbackQueryHandler(handle_service_selection, pattern='^service:'))
-        application.add_handler(CallbackQueryHandler(handle_payment, pattern='^(show_requisites|send_receipt)$'))
+        application.add_handler(CallbackQueryHandler(handle_payment, pattern='^(show_requisites|send_receipt|contact_admin)$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_camps, pattern='^back_to_camps$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_main_menu, pattern='^back_to_main_menu$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_camp_options, pattern='^back_to_camp_options$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_sochi_categories, pattern='^back_to_sochi_categories$'))
+        application.add_handler(CallbackQueryHandler(handle_back_to_services, pattern='^back_to_services$'))
         application.add_handler(CallbackQueryHandler(noop, pattern='^noop$'))
         
         application.add_error_handler(error_handler)

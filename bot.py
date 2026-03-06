@@ -16,6 +16,9 @@ ADMIN_CHAT_ID = 42038232
 ADMIN_USERNAME = "Dmitry_Kh_87"
 ADMIN_PHONE = "89855796779"
 
+# Ссылка на согласие на обработку персональных данных
+PERSONAL_DATA_CONSENT_LINK = "https://sportlead.ru/media/sball/company_Soglasie_na_obrabotku_personalnyh_dannyh.docx"
+
 # Состояния для ConversationHandler
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, EMAIL, RECEIPT_PHOTO) = range(5)
 (SOCHI_EMAIL, SOCHI_WAIT_CONTRACT, SOCHI_CATEGORY, SOCHI_SHIFT) = range(5, 9)
@@ -433,7 +436,8 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
                 f"📍 {camp['address']}\n\n"
-                f"Для продолжения необходимо дать согласие на обработку персональных данных."
+                f"Для продолжения необходимо дать согласие на обработку персональных данных.\n"
+                f"📄 <a href='{PERSONAL_DATA_CONSENT_LINK}'>Согласие на обработку ПД</a>"
             )
             
             await query.edit_message_text(
@@ -442,13 +446,14 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 reply_markup=get_sochi_pd_agree_keyboard()
             )
         else:
-            # Обычные программы: оферта с индивидуальной ссылкой
+            # Обычные программы: оферта с индивидуальной ссылкой + согласие на ПД
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
                 f"📍 {camp['address']}\n\n"
-                f"📄 <a href='{offer_link}'>Оферта (PDF)</a> ({camp['legal_entity']})\n\n"
-                f"Нажимая «Согласен», вы подтверждаете, что ознакомились и согласны с условиями оферты."
+                f"📄 <a href='{offer_link}'>Оферта (PDF)</a> ({camp['legal_entity']})\n"
+                f"📄 <a href='{PERSONAL_DATA_CONSENT_LINK}'>Согласие на обработку ПД</a>\n\n"
+                f"Нажимая «Согласен», вы подтверждаете, что ознакомились и согласны с условиями оферты и согласия на обработку ПД."
             )
             
             await query.edit_message_text(
@@ -465,9 +470,22 @@ async def handle_sochi_pd_agree(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
     
+    camp = context.user_data.get("selected_camp")
+    contract_link = OFFER_LINKS.get("sochi", "https://clck.ru/3RuZKG")
+    
+    text = (
+        f"<b>Вы выбрали:</b>\n"
+        f"🏕️ {camp['offer_text']}\n"
+        f"📍 {camp['address']}\n\n"
+        f"📄 <a href='{contract_link}'>Договор: PDF ({camp['legal_entity']})</a>\n"
+        f"📄 <a href='{PERSONAL_DATA_CONSENT_LINK}'>Согласие на обработку ПД</a>\n\n"
+        f"Для получения договора на электронную почту, введите ваш email:"
+    )
+    
     await query.edit_message_text(
-        text="📝 Введите ваш email для получения договора:",
+        text=text,
         parse_mode='HTML',
+        disable_web_page_preview=True,
         reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")
         ]])

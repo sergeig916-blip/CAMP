@@ -23,6 +23,35 @@ PERSONAL_DATA_CONSENT_LINK = "https://sportlead.ru/media/sball/company_Soglasie_
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, EMAIL, RECEIPT_PHOTO) = range(5)
 (SOCHI_EMAIL, SOCHI_WAIT_CONTRACT, SOCHI_CATEGORY, SOCHI_SHIFT) = range(5, 9)
 
+# ========== QR-КОДЫ ДЛЯ ОПЛАТЫ ==========
+QR_FILES = {
+    "solntsevo": {
+        "type": "png",
+        "file_id": "AgACAgIAAxkBAAICt2mq8lvFWHDIx6X1vb0GKEFXfk0FAAJoFmsb8aNZSfp8PkP0s5S3AQADAgADeAADOgQ",
+        "description": "🏕️ Солнцево"
+    },
+    "tushino": {
+        "type": "png",
+        "file_id": "AgACAgIAAxkBAAICt2mq8lvFWHDIx6X1vb0GKEFXfk0FAAJoFmsb8aNZSfp8PkP0s5S3AQADAgADeAADOgQ",
+        "description": "🏕️ Тушино"
+    },
+    "kuzminki": {
+        "type": "png",
+        "file_id": "AgACAgIAAxkBAAICt2mq8lvFWHDIx6X1vb0GKEFXfk0FAAJoFmsb8aNZSfp8PkP0s5S3AQADAgADeAADOgQ",
+        "description": "🏕️ Кузьминки"
+    },
+    "khamovniki": {
+        "type": "pdf",
+        "file_id": "AgACAgIAAxkBAAICy2mrF3gDxG-v86_d5npcoeMQONqSAALXF2sb8aNZSccXmEjwHAeAAQADAgADeQADOgQ",
+        "description": "🏕️ Хамовники"
+    },
+    "sochi": {
+        "type": "pdf",
+        "file_id": "AgACAgIAAxkBAAICy2mrF3gDxG-v86_d5npcoeMQONqSAALXF2sb8aNZSccXmEjwHAeAAQADAgADeQADOgQ",
+        "description": "🏕️ Сочи"
+    }
+}
+
 # ========== ДАННЫЕ ==========
 # Ссылки на оферты для каждого кэмпа
 OFFER_LINKS = {
@@ -33,7 +62,6 @@ OFFER_LINKS = {
     "sochi": ""  # для Сочи договор не нужен, только согласие на ПД
 }
 
-QR_LINK = "https://clck.ru/3RuZZA"
 REQUISITES_LINK = "https://clck.ru/3RuZKG"  # общие реквизиты
 
 # ========== ДАННЫЕ ПРОГРАММ ==========
@@ -766,14 +794,19 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     return ConversationHandler.END
 
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка оплаты"""
+    """Обработка оплаты с индивидуальными QR-кодами"""
     query = update.callback_query
     await query.answer()
     
     if query.data == "show_requisites":
         camp = context.user_data.get("selected_camp", {})
+        camp_id = camp.get("id")
         legal = camp.get("legal_entity", "Школа мяча")
         
+        # Получаем данные для QR
+        qr_data = QR_FILES.get(camp_id)
+        
+        # Текст инструкции
         text = (
             f"📄 <a href='{REQUISITES_LINK}'>PDF реквизиты \"{legal}\"</a>\n\n"
             f"Для оплаты услуги по реквизитам, пожалуйста, воспользуйтесь нашим QR кодом:\n\n"
@@ -787,12 +820,22 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ Пожалуйста, не забудьте прислать нам скриншот - подтверждение оплаты в следующем сообщении🙌"
         )
         
-        await query.message.reply_photo(
-            photo=QR_LINK,
-            caption=text,
-            parse_mode='HTML',
-            reply_markup=get_receipt_keyboard()
-        )
+        # Отправляем в зависимости от типа файла
+        if qr_data["type"] == "png":
+            await query.message.reply_photo(
+                photo=qr_data["file_id"],
+                caption=text,
+                parse_mode='HTML',
+                reply_markup=get_receipt_keyboard()
+            )
+        elif qr_data["type"] == "pdf":
+            await query.message.reply_document(
+                document=qr_data["file_id"],
+                filename=f"qr_{camp_id}.pdf",
+                caption=text,
+                parse_mode='HTML',
+                reply_markup=get_receipt_keyboard()
+            )
         
     elif query.data == "send_receipt":
         await query.message.reply_text(
@@ -1069,22 +1112,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     return ConversationHandler.END
 
-# ========== ВРЕМЕННЫЙ ОБРАБОТЧИК ДЛЯ ПОЛУЧЕНИЯ FILE_ID ==========
-async def get_file_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Просто показывает file_id отправленных файлов"""
-    if update.message.photo:
-        file_id = update.message.photo[-1].file_id
-        await update.message.reply_text(
-            f"✅ File ID для фото:\n<code>{file_id}</code>",
-            parse_mode='HTML'
-        )
-    elif update.message.document:
-        file_id = update.message.document.file_id
-        await update.message.reply_text(
-            f"✅ File ID для документа:\n<code>{file_id}</code>",
-            parse_mode='HTML'
-        )
-
 # ========== ЗАПУСК ==========
 def main():
     logger.info("🚀 Запуск бота...")
@@ -1139,9 +1166,6 @@ def main():
         application.add_handler(payment_conv_handler)
         application.add_handler(sochi_email_conv_handler)
         application.add_handler(sochi_contract_conv_handler)
-        
-        # ВРЕМЕННЫЙ обработчик для получения file_id
-        application.add_handler(MessageHandler(filters.PHOTO | filters.Document.ALL, get_file_id))
         
         # CallbackQueryHandler
         application.add_handler(CallbackQueryHandler(handle_camp_selection, pattern='^camp:'))

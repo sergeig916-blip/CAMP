@@ -21,9 +21,17 @@ ADMIN_PHONE = "89855796779"
 (SOCHI_EMAIL, SOCHI_WAIT_CONTRACT, SOCHI_CATEGORY, SOCHI_SHIFT) = range(5, 9)
 
 # ========== ДАННЫЕ ==========
-PDF_LINK = "https://clck.ru/3RuZKG"
+# Ссылки на оферты для каждого кэмпа
+OFFER_LINKS = {
+    "solntsevo": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Solntsevo_2026.docx",
+    "tushino": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Tushino_2026.docx",
+    "kuzminki": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Kuzminki_2026.docx",
+    "khamovniki": "https://sportlead.ru/media/sball/company_Oferta_kemp_ShMP_2026.docx",
+    "sochi": "https://clck.ru/3RuZKG"  # для Сочи пока старая ссылка на договор
+}
+
 QR_LINK = "https://clck.ru/3RuZZA"
-REQUISITES_LINK = PDF_LINK
+REQUISITES_LINK = "https://clck.ru/3RuZKG"  # общие реквизиты пока
 
 # ========== ДАННЫЕ ПРОГРАММ ==========
 CAMPS = [
@@ -416,6 +424,9 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data["selected_camp"] = camp
         context.user_data["is_sochi"] = (camp_id == "sochi")
         
+        # Получаем ссылку на оферту/договор для этого кэмпа
+        offer_link = OFFER_LINKS.get(camp_id, "https://clck.ru/3RuZKG")
+        
         if camp_id == "sochi":
             # Сочи: согласие на ПД
             text = (
@@ -431,12 +442,12 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 reply_markup=get_sochi_pd_agree_keyboard()
             )
         else:
-            # Обычные программы: оферта
+            # Обычные программы: оферта с индивидуальной ссылкой
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
                 f"📍 {camp['address']}\n\n"
-                f"📄 <a href='{PDF_LINK}'>Оферта (PDF)</a> ({camp['legal_entity']})\n\n"
+                f"📄 <a href='{offer_link}'>Оферта (PDF)</a> ({camp['legal_entity']})\n\n"
                 f"Нажимая «Согласен», вы подтверждаете, что ознакомились и согласны с условиями оферты."
             )
             
@@ -454,9 +465,22 @@ async def handle_sochi_pd_agree(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
     
+    # Для Сочи используем ссылку на договор
+    contract_link = OFFER_LINKS.get("sochi", "https://clck.ru/3RuZKG")
+    camp = context.user_data.get("selected_camp")
+    
+    text = (
+        f"<b>Вы выбрали:</b>\n"
+        f"🏕️ {camp['offer_text']}\n"
+        f"📍 {camp['address']}\n\n"
+        f"📄 <a href='{contract_link}'>Договор: PDF ({camp['legal_entity']})</a>\n\n"
+        f"Для получения договора на электронную почту, введите ваш email:"
+    )
+    
     await query.edit_message_text(
-        text="📝 Введите ваш email для получения договора:",
+        text=text,
         parse_mode='HTML',
+        disable_web_page_preview=True,
         reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")
         ]])
@@ -466,7 +490,9 @@ async def handle_sochi_pd_agree(update: Update, context: ContextTypes.DEFAULT_TY
 async def handle_sochi_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Получение email для Сочи"""
     email = update.message.text.strip()
-    logger.info(f"Получен email для Сочи: {email}")
+    user_id = update.effective_user.id
+    
+    logger.info(f"Пользователь {user_id} ввёл email для Сочи")
     
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         await update.message.reply_text(
@@ -479,7 +505,6 @@ async def handle_sochi_email(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user = update.effective_user
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     
-    # Уведомление менеджеру
     notification = (
         f"📧 НОВАЯ ЗАЯВКА (Сочи)\n"
         f"━━━━━━━━━━━━━━━\n"
@@ -499,7 +524,7 @@ async def handle_sochi_email(update: Update, context: ContextTypes.DEFAULT_TYPE)
             text=notification
         )
     except Exception as e:
-        logger.error(f"Ошибка при отправке уведомления: {e}")
+        logger.error(f"Ошибка при отправке уведомления менеджеру от пользователя {user_id}: {e}")
     
     await update.message.reply_text(
         "✅ Спасибо! Ваши данные отправлены менеджеру.\n"
@@ -515,6 +540,9 @@ async def handle_sochi_got_contract(update: Update, context: ContextTypes.DEFAUL
     query = update.callback_query
     await query.answer()
     
+    user_id = update.effective_user.id
+    logger.info(f"Пользователь {user_id} подтвердил получение договора")
+    
     context.user_data["sochi_files"] = []
     
     await query.message.edit_text(
@@ -527,6 +555,7 @@ async def handle_sochi_got_contract(update: Update, context: ContextTypes.DEFAUL
 async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Загрузка файлов договора для Сочи"""
     user = update.effective_user
+    user_id = user.id
     
     if not (update.message.document or update.message.photo):
         return SOCHI_WAIT_CONTRACT
@@ -541,7 +570,8 @@ async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT
     
     context.user_data["sochi_files"].append(file_info)
     
-    # Отправляем файл админу
+    logger.info(f"Пользователь {user_id} загрузил страницу {len(context.user_data['sochi_files'])} договора")
+    
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     email = context.user_data.get("sochi_email", "Не указан")
     
@@ -570,7 +600,7 @@ async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT
                 caption=caption
             )
     except Exception as e:
-        logger.error(f"Ошибка при отправке файла: {e}")
+        logger.error(f"Ошибка при отправке файла пользователем {user_id}: {e}")
     
     await update.message.reply_text(
         f"✅ Страница {len(context.user_data['sochi_files'])} получена. "
@@ -585,7 +615,10 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
     query = update.callback_query
     await query.answer()
     
+    user_id = update.effective_user.id
+    
     if not context.user_data.get("sochi_files"):
+        logger.info(f"Пользователь {user_id} попытался завершить загрузку без файлов")
         await query.message.edit_text(
             "❌ Вы не загрузили ни одного файла. Пожалуйста, сначала загрузите скан договора.",
             reply_markup=get_contract_upload_keyboard(has_files=False)
@@ -597,7 +630,8 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
     files_count = len(context.user_data["sochi_files"])
     email = context.user_data.get("sochi_email", "Не указан")
     
-    # Уведомление админу
+    logger.info(f"Пользователь {user_id} завершил загрузку договора ({files_count} стр.)")
+    
     notification = (f"📄 ЗАГРУЗКА ДОГОВОРА ЗАВЕРШЕНА\n"
                    f"━━━━━━━━━━━━━━━\n"
                    f"👤 Пользователь: {user.full_name}\n"
@@ -615,7 +649,7 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
             text=notification
         )
     except Exception as e:
-        logger.error(f"Ошибка при уведомлении админа: {e}")
+        logger.error(f"Ошибка при уведомлении админа о пользователе {user_id}: {e}")
     
     await query.message.edit_text(
         "✅ Спасибо! Договор получен.\n\n"
@@ -631,6 +665,9 @@ async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Согласие с офертой для обычных программ"""
     query = update.callback_query
     await query.answer()
+    
+    user_id = update.effective_user.id
+    logger.info(f"Пользователь {user_id} согласился с офертой")
     
     await query.edit_message_reply_markup(reply_markup=None)
     
@@ -709,6 +746,7 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     else:
         query = update.callback_query
     
+    user_id = update.effective_user.id
     camp = context.user_data.get("selected_camp")
     
     price = get_service_price(service_id, camp["id"] if camp else None)
@@ -719,6 +757,8 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
         "name": service_name,
         "price": price
     }
+    
+    logger.info(f"Пользователь {user_id} выбрал услугу в программе {camp['id'] if camp else 'unknown'}")
     
     await query.edit_message_text(
         text=(
@@ -776,8 +816,11 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
     """Связь с менеджером"""
     query = update.callback_query
     user = update.effective_user
+    user_id = user.id
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     service = context.user_data.get("selected_service", {}).get("name", "Не выбрана")
+    
+    logger.info(f"Пользователь {user_id} запросил связь с менеджером")
     
     notification = (f"📞 ЗАПРОС СВЯЗИ\n"
                    f"━━━━━━━━━━━━━━━\n"
@@ -795,7 +838,7 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
             text=notification
         )
     except Exception as e:
-        logger.error(f"Ошибка при уведомлении админа: {e}")
+        logger.error(f"Ошибка при уведомлении админа о запросе связи от {user_id}: {e}")
     
     await query.message.reply_text(
         text=f"📞 <b>Связь с менеджером</b>\n\n"
@@ -807,7 +850,9 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Шаг 1: ФИО участника"""
+    user_id = update.effective_user.id
     context.user_data["fio_participant"] = update.message.text
+    logger.info(f"Пользователь {user_id} ввёл ФИО участника (шаг 1/5)")
     await update.message.reply_text(
         "📝 Шаг 2 из 5\n\n"
         "Введите <b>ФИО плательщика</b>:",
@@ -817,7 +862,9 @@ async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Шаг 2: ФИО плательщика"""
+    user_id = update.effective_user.id
     context.user_data["fio_payer"] = update.message.text
+    logger.info(f"Пользователь {user_id} ввёл ФИО плательщика (шаг 2/5)")
     await update.message.reply_text(
         "📝 Шаг 3 из 5\n\n"
         "Введите <b>телефон для связи</b> (например, 89001234567):",
@@ -829,15 +876,19 @@ async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Шаг 3: телефон"""
     phone_input = update.message.text.strip()
+    user_id = update.effective_user.id
     
     digits = re.sub(r'\D', '', phone_input)
     if len(digits) == 11 and digits.startswith(('7', '8')):
         formatted = f"8{digits[1:4]}-{digits[4:7]}-{digits[7:9]}-{digits[9:11]}"
         context.user_data["phone"] = formatted
+        logger.info(f"Пользователь {user_id} ввёл телефон (шаг 3/5)")
     elif len(digits) == 10:
         formatted = f"8{digits[0:3]}-{digits[3:6]}-{digits[6:8]}-{digits[8:10]}"
         context.user_data["phone"] = formatted
+        logger.info(f"Пользователь {user_id} ввёл телефон (шаг 3/5)")
     else:
+        logger.info(f"Пользователь {user_id} ввёл некорректный телефон")
         await update.message.reply_text(
             "Пожалуйста, введите корректный номер телефона (например, 89001234567)"
         )
@@ -853,14 +904,17 @@ async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Шаг 4: email"""
     email = update.message.text.strip()
+    user_id = update.effective_user.id
     
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        logger.info(f"Пользователь {user_id} ввёл некорректный email")
         await update.message.reply_text(
             "Пожалуйста, введите корректный email (например, name@domain.ru)"
         )
         return EMAIL
     
     context.user_data["email"] = email
+    logger.info(f"Пользователь {user_id} ввёл email (шаг 4/5)")
     
     await update.message.reply_text(
         "📝 Шаг 5 из 5\n\n"
@@ -872,12 +926,15 @@ async def email(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Шаг 5: чек об оплате"""
     user = update.effective_user
+    user_id = user.id
     
     if not (update.message.photo or update.message.document):
         await update.message.reply_text(
             "Пожалуйста, отправьте фото или скан чека об оплате"
         )
         return RECEIPT_PHOTO
+    
+    logger.info(f"Пользователь {user_id} отправил чек (шаг 5/5)")
     
     fio_participant = context.user_data.get("fio_participant", "Не указано")
     fio_payer = context.user_data.get("fio_payer", "Не указано")
@@ -924,7 +981,7 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "✅ Спасибо! Чек получен. 🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     except Exception as e:
-        logger.error(f"Ошибка при отправке админу: {e}")
+        logger.error(f"Ошибка при отправке чека админу от пользователя {user_id}: {e}")
         await update.message.reply_text(
             "✅ Спасибо! Ваш чек получен. 🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
@@ -1011,6 +1068,8 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Отмена операции"""
+    user_id = update.effective_user.id
+    logger.info(f"Пользователь {user_id} отменил операцию")
     await update.message.reply_text(
         "Операция отменена. Нажмите /start чтобы начать заново."
     )

@@ -16,12 +16,51 @@ ADMIN_CHAT_ID = 42038232
 ADMIN_USERNAME = "Dmitry_Kh_87"
 ADMIN_PHONE = "89855796779"
 
+# Разработчик (для техподдержки)
+DEV_USERNAME = "your_telegram_username"  # 👈 ВСТАВЬТЕ СВОЙ USERNAME
+DEV_CONTACT = "По техническим вопросам: @your_telegram_username"
+
 # Ссылка на согласие на обработку персональных данных
 PERSONAL_DATA_CONSENT_LINK = "https://sportlead.ru/media/sball/company_Soglasie_na_obrabotku_personalnyh_dannyh.docx"
 
 # Состояния для ConversationHandler
 (FIO_PARTICIPANT, FIO_PAYER, PHONE, EMAIL, RECEIPT_PHOTO) = range(5)
 (SOCHI_EMAIL, SOCHI_WAIT_CONTRACT, SOCHI_CATEGORY, SOCHI_SHIFT) = range(5, 9)
+
+# ========== QR-КОДЫ ДЛЯ ОПЛАТЫ ==========
+# Получены через отправку боту и сохранение file_id
+QR_FILES = {
+    "solntsevo": {
+        "type": "png",
+        "file_id": "AgACAgIAAxkBAAIBZmfF8hK3aR8yP8H5xq2L9XQ1Zz4AAkzdMRvHcLFJgM3AQgABMtpHAAT",  # 👈 ВСТАВЬТЕ РЕАЛЬНЫЙ file_id
+        "description": "🏕️ Солнцево",
+        "download_link": "https://sportlead.ru/qr/solntsevo.png"  # если есть ссылка для скачивания
+    },
+    "tushino": {
+        "type": "png",
+        "file_id": "AgACAgIAAxkBAAIBZmfF8hK3aR8yP8H5xq2L9XQ1Zz4AAkzdMRvHcLFJgM3AQgABMtpHAAT",  # 👈 ВСТАВЬТЕ РЕАЛЬНЫЙ file_id (ДРУГОЙ!)
+        "description": "🏕️ Тушино",
+        "download_link": "https://sportlead.ru/qr/tushino.png"
+    },
+    "kuzminki": {
+        "type": "png",
+        "file_id": "",  # 👈 СЮДА ПОТОМ ВСТАВИТЕ
+        "description": "🏕️ Кузьминки",
+        "download_link": "https://sportlead.ru/qr/kuzminki.png"
+    },
+    "khamovniki": {
+        "type": "pdf",
+        "file_id": "",  # 👈 СЮДА ПОТОМ ВСТАВИТЕ (когда получите)
+        "description": "🏕️ Хамовники",
+        "download_link": "https://sportlead.ru/qr/khamovniki.pdf"
+    },
+    "sochi": {
+        "type": "pdf",
+        "file_id": "",  # 👈 СЮДА ПОТОМ ВСТАВИТЕ (когда получите)
+        "description": "🏕️ Сочи",
+        "download_link": "https://sportlead.ru/qr/sochi.pdf"
+    }
+}
 
 # ========== ДАННЫЕ ==========
 # Ссылки на оферты для каждого кэмпа
@@ -33,8 +72,8 @@ OFFER_LINKS = {
     "sochi": ""  # для Сочи договор не нужен, только согласие на ПД
 }
 
-QR_LINK = "https://clck.ru/3RuZZA"
-REQUISITES_LINK = "https://clck.ru/3RuZKG"  # общие реквизиты
+# Общие реквизиты (PDF)
+REQUISITES_LINK = "https://clck.ru/3RuZKG"
 
 # ========== ДАННЫЕ ПРОГРАММ ==========
 CAMPS = [
@@ -241,6 +280,9 @@ def get_camps_keyboard():
     keyboard = []
     for camp in CAMPS:
         keyboard.append([InlineKeyboardButton(camp["name"], callback_data=f"camp:{camp['id']}")])
+    
+    # Добавляем кнопку с разработчиком (внизу, менее заметно)
+    keyboard.append([InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_back_to_camps_keyboard():
@@ -253,6 +295,7 @@ def get_sochi_pd_agree_keyboard():
     keyboard = [
         [InlineKeyboardButton("✅ Даю согласие на обработку персональных данных", callback_data="sochi_pd_agree")],
         [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
+        [InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")],
         [InlineKeyboardButton("🔙 Назад к программам", callback_data="back_to_camps")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -261,7 +304,8 @@ def get_sochi_email_sent_keyboard():
     """Клавиатура после отправки email"""
     keyboard = [
         [InlineKeyboardButton("✅ Я получил и подписал договор", callback_data="sochi_got_contract")],
-        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")]
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
+        [InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -273,19 +317,20 @@ def get_contract_upload_keyboard(has_files=False):
     else:
         keyboard.append([InlineKeyboardButton("⏳ Сначала загрузите файлы", callback_data="noop")])
     keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
+    keyboard.append([InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_sochi_categories_keyboard():
     """Категории Сочи"""
     keyboard = []
     for cat in SOCHI_CATEGORIES:
-        # Сокращаем длинные названия для кнопок
         name = cat["name"]
         if len(name) > 40:
             name = cat["name"][:40] + "…"
         keyboard.append([InlineKeyboardButton(name, callback_data=f"sochi_category:{cat['id']}")])
     
     keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
+    keyboard.append([InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")])
     keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_main_menu")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -302,6 +347,7 @@ def get_sochi_shifts_keyboard(category_id):
             break
     
     keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
+    keyboard.append([InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")])
     keyboard.append([InlineKeyboardButton("🔙 Назад к категориям", callback_data="back_to_sochi_categories")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -311,6 +357,8 @@ def get_camp_main_menu_keyboard(camp_id):
         [InlineKeyboardButton("🏕️ КЭМП", callback_data="service_category:camp")],
         [InlineKeyboardButton("⚽ ТРЕНИРОВКИ", callback_data="service_category:training")],
         [InlineKeyboardButton("📦 ПРОЧЕЕ", callback_data="service_category:other")],
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
+        [InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")],
         [InlineKeyboardButton("🔙 Назад к программам", callback_data="back_to_camps")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -330,6 +378,8 @@ def get_camp_options_keyboard(camp_id):
             f"1 день - {format_price(camp['base_price_1'])}",
             callback_data=f"base_service:camp_1_day"
         )],
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
+        [InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")],
         [InlineKeyboardButton("🔙 Назад", callback_data="back_to_main_menu")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -341,6 +391,8 @@ def get_camp_shifts_keyboard(camp_id):
         button_text = f"{shift['name']} ({shift['dates']})"
         keyboard.append([InlineKeyboardButton(button_text, callback_data=f"service:{shift['id']}")])
     
+    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
+    keyboard.append([InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")])
     keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_camp_options")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -360,6 +412,8 @@ def get_training_keyboard(camp_id):
             text += f" - {format_price(s['price'])}"
         keyboard.append([InlineKeyboardButton(text, callback_data=f"service:{s['id']}")])
     
+    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
+    keyboard.append([InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")])
     keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_main_menu")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -377,19 +431,25 @@ def get_other_keyboard(camp_id):
             callback_data=f"service:{s['id']}"
         )])
     
+    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
+    keyboard.append([InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")])
     keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_main_menu")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_payment_keyboard():
     """Кнопка оплаты"""
-    keyboard = [[InlineKeyboardButton("💳 Оплатить", callback_data="show_requisites")]]
+    keyboard = [
+        [InlineKeyboardButton("💳 Оплатить", callback_data="show_requisites")],
+        [InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")]
+    ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_receipt_keyboard():
     """Кнопки после показа реквизитов"""
     keyboard = [
         [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")],
-        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")]
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
+        [InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -397,6 +457,7 @@ def get_contact_admin_keyboard():
     """Кнопка связи с менеджером"""
     keyboard = [
         [InlineKeyboardButton("📞 Написать менеджеру", url=f"https://t.me/{ADMIN_USERNAME}")],
+        [InlineKeyboardButton("🛠 Техподдержка", callback_data="show_dev_info")],
         [InlineKeyboardButton("🔙 Назад к услугам", callback_data="back_to_services")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -405,10 +466,42 @@ def get_contact_admin_keyboard():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /start"""
     context.user_data.clear()
+    
+    # Приветствие с информацией о разработчике
+    welcome_text = (
+        "🏕️ <b>Добро пожаловать в Школа мяча!</b>\n\n"
+        "Здесь вы можете выбрать программу и оплатить участие.\n\n"
+        f"{DEV_CONTACT}\n"
+        "━━━━━━━━━━━━━━━\n"
+        "👇 <b>Выберите программу:</b>"
+    )
+    
     await update.message.reply_text(
-        "🏕️ <b>Выберите программу:</b>",
+        welcome_text,
         parse_mode='HTML',
         reply_markup=get_camps_keyboard()
+    )
+
+async def show_dev_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показать информацию о разработчике"""
+    query = update.callback_query
+    await query.answer()
+    
+    dev_text = (
+        "🛠 <b>Техническая поддержка</b>\n\n"
+        "По всем техническим вопросам, ошибкам бота\n"
+        "и проблемам с оплатой обращайтесь:\n\n"
+        f"👨‍💻 Разработчик: @{DEV_USERNAME}\n\n"
+        "Пожалуйста, опишите проблему подробно,\n"
+        "приложите скриншоты если возможно."
+    )
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_to_previous")]]
+    
+    await query.edit_message_text(
+        text=dev_text,
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -426,6 +519,7 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
         
         context.user_data["selected_camp"] = camp
         context.user_data["is_sochi"] = (camp_id == "sochi")
+        context.user_data["previous_message"] = query.message  # для возврата
         
         # Получаем ссылку на оферту для этого кэмпа
         offer_link = OFFER_LINKS.get(camp_id, "https://clck.ru/3RuZKG")
@@ -766,33 +860,64 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     return ConversationHandler.END
 
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка оплаты"""
+    """Обработка оплаты с индивидуальными QR-кодами"""
     query = update.callback_query
     await query.answer()
     
     if query.data == "show_requisites":
         camp = context.user_data.get("selected_camp", {})
+        camp_id = camp.get("id")
         legal = camp.get("legal_entity", "Школа мяча")
         
+        # Получаем данные для QR
+        qr_data = QR_FILES.get(camp_id)
+        
+        if not qr_data or not qr_data.get("file_id"):
+            # Если QR не настроен, показываем общий
+            await show_general_requisites(update, context)
+            return
+        
+        # Текст инструкции
         text = (
+            f"💳 <b>Оплата для {camp.get('name')}</b>\n\n"
             f"📄 <a href='{REQUISITES_LINK}'>PDF реквизиты \"{legal}\"</a>\n\n"
-            f"Для оплаты услуги по реквизитам, пожалуйста, воспользуйтесь нашим QR кодом:\n\n"
-            f"⬇️ Для этого нужно:\n\n"
-            f"1️⃣ Сохранить код в фотопленке;\n"
-            f"2️⃣ Открыть приложение банка;\n"
-            f"3️⃣ Нажать «Сканировать из файла» и выбрать в фотопленке QR код;\n"
-            f"4️⃣ Вручную в назначении платежа указать ФИО участника + название услуги\n"
-            f"5️⃣ Ввести верную сумму\n"
-            f"6️⃣ Произвести оплату по реквизитам✅\n\n"
-            f"✅ Пожалуйста, не забудьте прислать нам скриншот - подтверждение оплаты в следующем сообщении🙌"
+            f"⬇️ <b>Инструкция по оплате:</b>\n\n"
+            f"1️⃣ <b>Сохраните QR-код</b> себе на устройство:\n"
+            f"   • На телефоне: нажмите и удерживайте изображение → «Сохранить»\n"
+            f"   • На компьютере: кликните правой кнопкой → «Сохранить как»\n\n"
+            f"2️⃣ Откройте приложение вашего банка\n\n"
+            f"3️⃣ Выберите «Оплата по QR-коду» или «Сканировать из файла»\n\n"
+            f"4️⃣ В назначении платежа укажите: <b>ФИО участника + название услуги</b>\n\n"
+            f"5️⃣ Проверьте сумму и произведите оплату\n\n"
         )
         
-        await query.message.reply_photo(
-            photo=QR_LINK,
-            caption=text,
-            parse_mode='HTML',
-            reply_markup=get_receipt_keyboard()
-        )
+        # Добавляем ссылку для скачивания если есть
+        if qr_data.get("download_link"):
+            text += f"📥 <b>Ссылка для скачивания:</b>\n{qr_data['download_link']}\n\n"
+        
+        text += f"✅ После оплаты нажмите кнопку «📤 Отправить чек» и пришлите нам подтверждение"
+        
+        # Отправляем в зависимости от типа файла
+        try:
+            if qr_data["type"] == "png":
+                await query.message.reply_photo(
+                    photo=qr_data["file_id"],
+                    caption=text,
+                    parse_mode='HTML',
+                    reply_markup=get_receipt_keyboard()
+                )
+            elif qr_data["type"] == "pdf":
+                await query.message.reply_document(
+                    document=qr_data["file_id"],
+                    filename=f"qr_{camp_id}.pdf",
+                    caption=text,
+                    parse_mode='HTML',
+                    reply_markup=get_receipt_keyboard()
+                )
+        except Exception as e:
+            logger.error(f"Ошибка при отправке QR-кода: {e}")
+            # Если ошибка, показываем общие реквизиты
+            await show_general_requisites(update, context)
         
     elif query.data == "send_receipt":
         await query.message.reply_text(
@@ -804,6 +929,32 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif query.data == "contact_admin":
         await handle_contact_admin(update, context)
+
+async def show_general_requisites(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показать общие реквизиты (запасной вариант)"""
+    query = update.callback_query
+    camp = context.user_data.get("selected_camp", {})
+    legal = camp.get("legal_entity", "Школа мяча")
+    
+    text = (
+        f"📄 <a href='{REQUISITES_LINK}'>PDF реквизиты \"{legal}\"</a>\n\n"
+        f"Для оплаты услуги по реквизитам, пожалуйста, воспользуйтесь нашим QR кодом:\n\n"
+        f"⬇️ Для этого нужно:\n\n"
+        f"1️⃣ Сохранить код в фотопленке;\n"
+        f"2️⃣ Открыть приложение банка;\n"
+        f"3️⃣ Нажать «Сканировать из файла» и выбрать в фотопленке QR код;\n"
+        f"4️⃣ Вручную в назначении платежа указать ФИО участника + название услуги\n"
+        f"5️⃣ Ввести верную сумму\n"
+        f"6️⃣ Произвести оплату по реквизитам✅\n\n"
+        f"✅ Пожалуйста, не забудьте прислать нам скриншот - подтверждение оплаты в следующем сообщении🙌"
+    )
+    
+    await query.message.reply_photo(
+        photo="https://clck.ru/3RuZZA",  # старый тестовый QR
+        caption=text,
+        parse_mode='HTML',
+        reply_markup=get_receipt_keyboard()
+    )
 
 async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Связь с менеджером"""
@@ -835,7 +986,7 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await query.message.reply_text(
         text=f"📞 <b>Связь с менеджером</b>\n\n"
-             f"Телефон: 8-985-579-67-79\n\n"
+             f"Телефон: {ADMIN_PHONE}\n\n"
              f"Нажмите кнопку ниже, чтобы написать менеджеру в Telegram:",
         parse_mode='HTML',
         reply_markup=get_contact_admin_keyboard()
@@ -1050,6 +1201,35 @@ async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_
             reply_markup=get_camp_main_menu_keyboard(camp["id"])
         )
 
+async def handle_back_to_previous(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Возврат к предыдущему меню"""
+    query = update.callback_query
+    await query.answer()
+    
+    # Пытаемся вернуться к последнему состоянию
+    camp = context.user_data.get("selected_camp")
+    
+    if camp:
+        is_sochi = context.user_data.get("is_sochi", False)
+        if is_sochi:
+            await query.edit_message_text(
+                text="<b>Выберите тип участия:</b>",
+                parse_mode='HTML',
+                reply_markup=get_sochi_categories_keyboard()
+            )
+        else:
+            await query.edit_message_text(
+                text="<b>Какая услуга вас интересует?</b>",
+                parse_mode='HTML',
+                reply_markup=get_camp_main_menu_keyboard(camp["id"])
+            )
+    else:
+        await query.edit_message_text(
+            "🏕️ <b>Выберите программу:</b>",
+            parse_mode='HTML',
+            reply_markup=get_camps_keyboard()
+        )
+
 async def noop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Заглушка для неактивных кнопок"""
     query = update.callback_query
@@ -1058,6 +1238,12 @@ async def noop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик ошибок"""
     logger.error(f"Ошибка: {context.error}")
+    
+    # Уведомляем пользователя о технической проблеме
+    if update and update.effective_message:
+        await update.effective_message.reply_text(
+            "😔 Произошла техническая ошибка. Пожалуйста, попробуйте позже или обратитесь в техподдержку."
+        )
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Отмена операции"""
@@ -1069,10 +1255,47 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     return ConversationHandler.END
 
+# ========== ВРЕМЕННЫЙ ОБРАБОТЧИК ДЛЯ ПОЛУЧЕНИЯ FILE_ID ==========
+# ЗАКОММЕНТИРУЙТЕ ЭТОТ БЛОК ПОСЛЕ ТОГО, КАК ПОЛУЧИТЕ ВСЕ FILE_ID
+"""
+async def get_file_id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    '''Временный обработчик для получения file_id новых QR-кодов'''
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+        file_unique_id = update.message.photo[-1].file_unique_id
+        
+        await update.message.reply_text(
+            f"✅ FILE_ID ДЛЯ ФОТО ПОЛУЧЕН!\n\n"
+            f"<b>file_id:</b> <code>{file_id}</code>\n\n"
+            f"<b>file_unique_id:</b> <code>{file_unique_id}</code>\n\n"
+            f"Скопируйте file_id в словарь QR_FILES для соответствующего кэмпа.",
+            parse_mode='HTML'
+        )
+        
+        logger.info(f"ПОЛУЧЕН FILE_ID ДЛЯ ФОТО: {file_id}")
+        
+    elif update.message.document:
+        file_id = update.message.document.file_id
+        file_unique_id = update.message.document.file_unique_id
+        file_name = update.message.document.file_name
+        
+        await update.message.reply_text(
+            f"✅ FILE_ID ДЛЯ ДОКУМЕНТА ПОЛУЧЕН!\n\n"
+            f"<b>Файл:</b> {file_name}\n"
+            f"<b>file_id:</b> <code>{file_id}</code>\n\n"
+            f"<b>file_unique_id:</b> <code>{file_unique_id}</code>\n\n"
+            f"Скопируйте file_id в словарь QR_FILES для соответствующего кэмпа.",
+            parse_mode='HTML'
+        )
+        
+        logger.info(f"ПОЛУЧЕН FILE_ID ДЛЯ ДОКУМЕНТА {file_name}: {file_id}")
+"""
+
 # ========== ЗАПУСК ==========
 def main():
     logger.info("🚀 Запуск бота...")
     logger.info(f"👤 Администратор ID: {ADMIN_CHAT_ID}")
+    logger.info(f"👨‍💻 Разработчик: @{DEV_USERNAME}")
     
     try:
         application = Application.builder().token(BOT_TOKEN).build()
@@ -1124,7 +1347,7 @@ def main():
         application.add_handler(sochi_email_conv_handler)
         application.add_handler(sochi_contract_conv_handler)
         
-        # CallbackQueryHandler
+        # Основные CallbackQueryHandler
         application.add_handler(CallbackQueryHandler(handle_camp_selection, pattern='^camp:'))
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))
         application.add_handler(CallbackQueryHandler(handle_service_category, pattern='^service_category:'))
@@ -1132,20 +1355,27 @@ def main():
         application.add_handler(CallbackQueryHandler(handle_sochi_category, pattern='^sochi_category:'))
         application.add_handler(CallbackQueryHandler(handle_service_selection, pattern='^service:'))
         application.add_handler(CallbackQueryHandler(handle_payment, pattern='^(show_requisites|send_receipt|contact_admin)$'))
+        application.add_handler(CallbackQueryHandler(show_dev_info, pattern='^show_dev_info$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_camps, pattern='^back_to_camps$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_main_menu, pattern='^back_to_main_menu$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_camp_options, pattern='^back_to_camp_options$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_sochi_categories, pattern='^back_to_sochi_categories$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_services, pattern='^back_to_services$'))
+        application.add_handler(CallbackQueryHandler(handle_back_to_previous, pattern='^back_to_previous$'))
         application.add_handler(CallbackQueryHandler(noop, pattern='^noop$'))
+        
+        # ВРЕМЕННО: раскомментируйте для получения file_id новых QR-кодов
+        # application.add_handler(MessageHandler(filters.PHOTO | filters.Document.ALL, get_file_id_handler))
         
         application.add_error_handler(error_handler)
         
-        logger.info("✅ Бот запущен!")
+        logger.info("✅ Бот успешно запущен!")
+        logger.info("📱 Проверьте бота в Telegram")
+        
         application.run_polling(drop_pending_updates=True)
         
     except Exception as e:
-        logger.error(f"💥 Критическая ошибка: {e}")
+        logger.error(f"💥 Критическая ошибка при запуске: {e}")
         raise
 
 if __name__ == '__main__':

@@ -30,7 +30,7 @@ OFFER_LINKS = {
     "tushino": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Tushino_2026.docx",
     "kuzminki": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Kuzminki_2026.docx",
     "khamovniki": "https://sportlead.ru/media/sball/company_Oferta_kemp_ShMP_2026.docx",
-    "sochi": "https://clck.ru/3RuZKG"  # для Сочи пока старая ссылка на договор
+    "sochi": ""  # для Сочи договор не нужен, только согласие на ПД
 }
 
 QR_LINK = "https://clck.ru/3RuZZA"
@@ -427,17 +427,17 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data["selected_camp"] = camp
         context.user_data["is_sochi"] = (camp_id == "sochi")
         
-        # Получаем ссылку на оферту/договор для этого кэмпа
+        # Получаем ссылку на оферту для этого кэмпа
         offer_link = OFFER_LINKS.get(camp_id, "https://clck.ru/3RuZKG")
         
         if camp_id == "sochi":
-            # Сочи: согласие на ПД
+            # Сочи: только согласие на ПД, без договора
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
                 f"📍 {camp['address']}\n\n"
-                f"Для продолжения необходимо дать согласие на обработку персональных данных.\n"
-                f"📄 <a href='{PERSONAL_DATA_CONSENT_LINK}'>Согласие на обработку ПД</a>"
+                f"📄 <a href='{PERSONAL_DATA_CONSENT_LINK}'>Согласие на обработку персональных данных</a>\n\n"
+                f"Для продолжения необходимо дать согласие на обработку персональных данных."
             )
             
             await query.edit_message_text(
@@ -446,7 +446,7 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 reply_markup=get_sochi_pd_agree_keyboard()
             )
         else:
-            # Обычные программы: оферта с индивидуальной ссылкой + согласие на ПД
+            # Обычные программы: оферта + согласие на ПД
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
@@ -470,22 +470,9 @@ async def handle_sochi_pd_agree(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
     
-    camp = context.user_data.get("selected_camp")
-    contract_link = OFFER_LINKS.get("sochi", "https://clck.ru/3RuZKG")
-    
-    text = (
-        f"<b>Вы выбрали:</b>\n"
-        f"🏕️ {camp['offer_text']}\n"
-        f"📍 {camp['address']}\n\n"
-        f"📄 <a href='{contract_link}'>Договор: PDF ({camp['legal_entity']})</a>\n"
-        f"📄 <a href='{PERSONAL_DATA_CONSENT_LINK}'>Согласие на обработку ПД</a>\n\n"
-        f"Для получения договора на электронную почту, введите ваш email:"
-    )
-    
     await query.edit_message_text(
-        text=text,
+        text="📝 Введите ваш email для получения договора:",
         parse_mode='HTML',
-        disable_web_page_preview=True,
         reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")
         ]])

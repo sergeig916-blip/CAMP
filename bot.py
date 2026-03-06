@@ -24,6 +24,7 @@ PERSONAL_DATA_CONSENT_LINK = "https://sportlead.ru/media/sball/company_Soglasie_
 (SOCHI_EMAIL, SOCHI_WAIT_CONTRACT, SOCHI_CATEGORY, SOCHI_SHIFT) = range(5, 9)
 
 # ========== QR-КОДЫ ДЛЯ ОПЛАТЫ ==========
+# Все QR-коды теперь как PNG (фото)
 QR_FILES = {
     "solntsevo": {
         "type": "png",
@@ -41,12 +42,12 @@ QR_FILES = {
         "description": "🏕️ Кузьминки"
     },
     "khamovniki": {
-        "type": "pdf",
+        "type": "png",  # теперь тоже PNG
         "file_id": "AgACAgIAAxkBAAICy2mrF3gDxG-v86_d5npcoeMQONqSAALXF2sb8aNZSccXmEjwHAeAAQADAgADeQADOgQ",
         "description": "🏕️ Хамовники"
     },
     "sochi": {
-        "type": "pdf",
+        "type": "png",  # теперь тоже PNG
         "file_id": "AgACAgIAAxkBAAICy2mrF3gDxG-v86_d5npcoeMQONqSAALXF2sb8aNZSccXmEjwHAeAAQADAgADeQADOgQ",
         "description": "🏕️ Сочи"
     }
@@ -803,7 +804,7 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Получаем данные для QR
         qr_data = QR_FILES.get(camp_id)
         
-        # Текст инструкции (без ссылки на реквизиты)
+        # Текст инструкции
         text = (
             f"Для оплаты услуги, пожалуйста, воспользуйтесь нашим QR кодом:\n\n"
             f"⬇️ Для этого нужно:\n\n"
@@ -816,22 +817,13 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ Пожалуйста, не забудьте прислать нам скриншот - подтверждение оплаты в следующем сообщении🙌"
         )
         
-        # Отправляем в зависимости от типа файла
-        if qr_data["type"] == "png":
-            await query.message.reply_photo(
-                photo=qr_data["file_id"],
-                caption=text,
-                parse_mode='HTML',
-                reply_markup=get_receipt_keyboard()
-            )
-        elif qr_data["type"] == "pdf":
-            await query.message.reply_document(
-                document=qr_data["file_id"],
-                filename=f"qr_{camp_id}.pdf",
-                caption=text,
-                parse_mode='HTML',
-                reply_markup=get_receipt_keyboard()
-            )
+        # ДЛЯ ВСЕХ ПРОГРАММ ОТПРАВЛЯЕМ КАК ФОТО
+        await query.message.reply_photo(
+            photo=qr_data["file_id"],
+            caption=text,
+            parse_mode='HTML',
+            reply_markup=get_receipt_keyboard()
+        )
         
     elif query.data == "send_receipt":
         await query.message.reply_text(

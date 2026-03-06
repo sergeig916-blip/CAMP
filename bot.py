@@ -31,7 +31,7 @@ OFFER_LINKS = {
 }
 
 QR_LINK = "https://clck.ru/3RuZZA"
-REQUISITES_LINK = "https://clck.ru/3RuZKG"  # общие реквизиты пока
+REQUISITES_LINK = "https://clck.ru/3RuZKG"  # общие реквизиты
 
 # ========== ДАННЫЕ ПРОГРАММ ==========
 CAMPS = [
@@ -461,26 +461,13 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
             )
 
 async def handle_sochi_pd_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Согласие на ПД для Сочи"""
+    """Согласие на ПД для Сочи - переход к запросу email"""
     query = update.callback_query
     await query.answer()
     
-    # Для Сочи используем ссылку на договор
-    contract_link = OFFER_LINKS.get("sochi", "https://clck.ru/3RuZKG")
-    camp = context.user_data.get("selected_camp")
-    
-    text = (
-        f"<b>Вы выбрали:</b>\n"
-        f"🏕️ {camp['offer_text']}\n"
-        f"📍 {camp['address']}\n\n"
-        f"📄 <a href='{contract_link}'>Договор: PDF ({camp['legal_entity']})</a>\n\n"
-        f"Для получения договора на электронную почту, введите ваш email:"
-    )
-    
     await query.edit_message_text(
-        text=text,
+        text="📝 Введите ваш email для получения договора:",
         parse_mode='HTML',
-        disable_web_page_preview=True,
         reply_markup=InlineKeyboardMarkup([[
             InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")
         ]])
@@ -505,6 +492,7 @@ async def handle_sochi_email(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user = update.effective_user
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     
+    # Уведомление менеджеру
     notification = (
         f"📧 НОВАЯ ЗАЯВКА (Сочи)\n"
         f"━━━━━━━━━━━━━━━\n"

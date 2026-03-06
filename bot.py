@@ -24,7 +24,6 @@ PERSONAL_DATA_CONSENT_LINK = "https://sportlead.ru/media/sball/company_Soglasie_
 (SOCHI_EMAIL, SOCHI_WAIT_CONTRACT, SOCHI_CATEGORY, SOCHI_SHIFT) = range(5, 9)
 
 # ========== QR-КОДЫ ДЛЯ ОПЛАТЫ ==========
-# Старая ссылка больше не используется
 QR_FILES = {
     "solntsevo": {
         "type": "png",
@@ -62,8 +61,6 @@ OFFER_LINKS = {
     "khamovniki": "https://sportlead.ru/media/sball/company_Oferta_kemp_ShMP_2026.docx",
     "sochi": ""  # для Сочи договор не нужен, только согласие на ПД
 }
-
-REQUISITES_LINK = "https://clck.ru/3RuZKG"  # общие реквизиты
 
 # ========== ДАННЫЕ ПРОГРАММ ==========
 CAMPS = [
@@ -802,15 +799,13 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data == "show_requisites":
         camp = context.user_data.get("selected_camp", {})
         camp_id = camp.get("id")
-        legal = camp.get("legal_entity", "Школа мяча")
         
         # Получаем данные для QR
         qr_data = QR_FILES.get(camp_id)
         
-        # Текст инструкции (старая ссылка на QR полностью убрана)
+        # Текст инструкции (без ссылки на реквизиты)
         text = (
-            f"📄 <a href='{REQUISITES_LINK}'>PDF реквизиты \"{legal}\"</a>\n\n"
-            f"Для оплаты услуги по реквизитам, пожалуйста, воспользуйтесь нашим QR кодом:\n\n"
+            f"Для оплаты услуги, пожалуйста, воспользуйтесь нашим QR кодом:\n\n"
             f"⬇️ Для этого нужно:\n\n"
             f"1️⃣ Сохранить код в фотопленке;\n"
             f"2️⃣ Открыть приложение банка;\n"

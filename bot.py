@@ -42,19 +42,19 @@ QR_FILES = {
         "description": "🏕️ Кузьминки"
     },
     "khamovniki": {
-        "type": "png",  # теперь тоже PNG
+        "type": "png",
         "file_id": "AgACAgIAAxkBAAICy2mrF3gDxG-v86_d5npcoeMQONqSAALXF2sb8aNZSccXmEjwHAeAAQADAgADeQADOgQ",
         "description": "🏕️ Хамовники"
     },
     "sochi": {
-        "type": "png",  # теперь тоже PNG
+        "type": "png",
         "file_id": "AgACAgIAAxkBAAICy2mrF3gDxG-v86_d5npcoeMQONqSAALXF2sb8aNZSccXmEjwHAeAAQADAgADeQADOgQ",
         "description": "🏕️ Сочи"
     }
 }
 
 # ========== ДАННЫЕ ==========
-# Ссылки на оферты для каждого кэмпа
+# Ссылки на оферты для каждого кэмпа (убраны названия юрлиц)
 OFFER_LINKS = {
     "solntsevo": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Solntsevo_2026.docx",
     "tushino": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Tushino_2026.docx",
@@ -158,7 +158,14 @@ KHAMOVNIKI_OTHER = [
     {"name": "форма", "price": 4500, "id": "uniform"}
 ]
 
-# Сочи — категории и смены
+# Специальная услуга для Сочи (после загрузки договора)
+SOCHI_SERVICE = {
+    "name": "🏕️ Поездка в Сочи",
+    "price": 0,  # Цена будет определена менеджером
+    "id": "sochi_trip"
+}
+
+# Сочи — категории и смены (оставлено для совместимости, но теперь не используется)
 SOCHI_CATEGORIES = [
     {
         "name": "«Спортсмен» (без сопровождения)",
@@ -229,7 +236,11 @@ def get_service_price(service_id: str, camp_id: str = None) -> int:
         if s["id"] == service_id:
             return s["price"]
     
-    # Проверяем Сочи
+    # Проверяем Сочи (специальная услуга)
+    if service_id == "sochi_trip":
+        return 0  # Цена будет определена менеджером
+    
+    # Проверяем старые категории Сочи (для совместимости)
     for cat in SOCHI_CATEGORIES:
         for opt in cat["options"]:
             if opt["id"] == service_id:
@@ -254,7 +265,11 @@ def get_service_name(service_id: str, camp_id: str = None) -> str:
         if s["id"] == service_id:
             return s["name"]
     
-    # Проверяем Сочи
+    # Проверяем специальную услугу Сочи
+    if service_id == "sochi_trip":
+        return "🏕️ Поездка в Сочи"
+    
+    # Проверяем старые категории Сочи (для совместимости)
     for cat in SOCHI_CATEGORIES:
         for opt in cat["options"]:
             if opt["id"] == service_id:
@@ -303,33 +318,13 @@ def get_contract_upload_keyboard(has_files=False):
     return InlineKeyboardMarkup(keyboard)
 
 def get_sochi_categories_keyboard():
-    """Категории Сочи"""
+    """Категории Сочи (больше не используется, оставлено для совместимости)"""
     keyboard = []
-    for cat in SOCHI_CATEGORIES:
-        # Сокращаем длинные названия для кнопок
-        name = cat["name"]
-        if len(name) > 40:
-            name = cat["name"][:40] + "…"
-        keyboard.append([InlineKeyboardButton(name, callback_data=f"sochi_category:{cat['id']}")])
-    
-    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
-    keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_main_menu")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_sochi_shifts_keyboard(category_id):
-    """Смены для выбранной категории Сочи"""
+    """Смены для выбранной категории Сочи (больше не используется)"""
     keyboard = []
-    for cat in SOCHI_CATEGORIES:
-        if cat["id"] == category_id:
-            for opt in cat["options"]:
-                keyboard.append([InlineKeyboardButton(
-                    f"{opt['name']} - {format_price(opt['price'])}",
-                    callback_data=f"service:{opt['id']}"
-                )])
-            break
-    
-    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
-    keyboard.append([InlineKeyboardButton("🔙 Назад к категориям", callback_data="back_to_sochi_categories")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_camp_main_menu_keyboard(camp_id):
@@ -473,12 +468,12 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 reply_markup=get_sochi_pd_agree_keyboard()
             )
         else:
-            # Обычные программы: оферта + согласие на ПД
+            # Обычные программы: оферта + согласие на ПД (без указания юрлица)
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
                 f"📍 {camp['address']}\n\n"
-                f"📄 <a href='{offer_link}'>Оферта (PDF)</a> ({camp['legal_entity']})\n"
+                f"📄 <a href='{offer_link}'>Оферта (PDF)</a>\n"
                 f"📄 <a href='{PERSONAL_DATA_CONSENT_LINK}'>Согласие на обработку ПД</a>\n\n"
                 f"Нажимая «Согласен», вы подтверждаете, что ознакомились и согласны с условиями оферты и согласия на обработку ПД."
             )
@@ -631,7 +626,7 @@ async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT
     return SOCHI_WAIT_CONTRACT
 
 async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Завершение загрузки договора"""
+    """Завершение загрузки договора - переход к оплате Сочи"""
     query = update.callback_query
     await query.answer()
     
@@ -671,11 +666,23 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
     except Exception as e:
         logger.error(f"Ошибка при уведомлении админа о пользователе {user_id}: {e}")
     
+    # Устанавливаем специальную услугу для Сочи
+    context.user_data["selected_service"] = {
+        "id": "sochi_trip",
+        "name": "🏕️ Поездка в Сочи",
+        "price": 0
+    }
+    
+    # Сразу переходим к оплате
     await query.message.edit_text(
-        "✅ Спасибо! Договор получен.\n\n"
-        "<b>Выберите тип участия:</b>",
+        text=(
+            f"<b>✅ Договор получен!</b>\n\n"
+            f"<b>🏟 Вы выбрали:</b>\n"
+            f"🏕️ Поездка в Сочи\n\n"
+            f"<b>📍 Парк отель Сочи</b>"
+        ),
         parse_mode='HTML',
-        reply_markup=get_sochi_categories_keyboard()
+        reply_markup=get_payment_keyboard()
     )
     
     context.user_data.pop("sochi_files", None)
@@ -745,17 +752,8 @@ async def handle_base_service(update: Update, context: ContextTypes.DEFAULT_TYPE
         await handle_service_selection(update, context, service_id)
 
 async def handle_sochi_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор категории в Сочи"""
-    query = update.callback_query
-    await query.answer()
-    
-    category_id = query.data.split(":")[1]
-    
-    await query.edit_message_text(
-        text="<b>Выберите смену:</b>",
-        parse_mode='HTML',
-        reply_markup=get_sochi_shifts_keyboard(category_id)
-    )
+    """Выбор категории в Сочи (больше не используется)"""
+    pass
 
 async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, service_id=None):
     """Выбор конкретной услуги"""
@@ -1050,15 +1048,8 @@ async def handle_back_to_camp_options(update: Update, context: ContextTypes.DEFA
     )
 
 async def handle_back_to_sochi_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат к категориям Сочи"""
-    query = update.callback_query
-    await query.answer()
-    
-    await query.edit_message_text(
-        text="<b>Выберите тип участия:</b>",
-        parse_mode='HTML',
-        reply_markup=get_sochi_categories_keyboard()
-    )
+    """Возврат к категориям Сочи (больше не используется)"""
+    pass
 
 async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Возврат к услугам после контакта с менеджером"""
@@ -1069,11 +1060,19 @@ async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_
     is_sochi = context.user_data.get("is_sochi", False)
     
     if is_sochi:
-        await query.message.reply_text(
-            text="<b>Выберите тип участия:</b>",
-            parse_mode='HTML',
-            reply_markup=get_sochi_categories_keyboard()
-        )
+        # Для Сочи возвращаемся к оплате
+        service_data = context.user_data.get("selected_service", {})
+        if service_data:
+            await query.message.reply_text(
+                text=(
+                    f"<b>🏟 Вы выбрали:</b>\n"
+                    f"{service_data.get('name', 'Поездка в Сочи')}\n\n"
+                    f"<b>📍 {camp['name']}</b>\n"
+                    f"{camp['address']}"
+                ),
+                parse_mode='HTML',
+                reply_markup=get_payment_keyboard()
+            )
     else:
         await query.message.reply_text(
             text="<b>Какая услуга вас интересует?</b>",
@@ -1160,13 +1159,11 @@ def main():
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))
         application.add_handler(CallbackQueryHandler(handle_service_category, pattern='^service_category:'))
         application.add_handler(CallbackQueryHandler(handle_base_service, pattern='^base_service:'))
-        application.add_handler(CallbackQueryHandler(handle_sochi_category, pattern='^sochi_category:'))
         application.add_handler(CallbackQueryHandler(handle_service_selection, pattern='^service:'))
         application.add_handler(CallbackQueryHandler(handle_payment, pattern='^(show_requisites|send_receipt|contact_admin)$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_camps, pattern='^back_to_camps$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_main_menu, pattern='^back_to_main_menu$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_camp_options, pattern='^back_to_camp_options$'))
-        application.add_handler(CallbackQueryHandler(handle_back_to_sochi_categories, pattern='^back_to_sochi_categories$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_services, pattern='^back_to_services$'))
         application.add_handler(CallbackQueryHandler(noop, pattern='^noop$'))
         

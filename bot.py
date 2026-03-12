@@ -24,7 +24,7 @@ PERSONAL_DATA_CONSENT_LINK = "https://sportlead.ru/media/sball/company_Soglasie_
 (SOCHI_EMAIL, SOCHI_WAIT_CONTRACT, SOCHI_CATEGORY, SOCHI_SHIFT) = range(5, 9)
 
 # ========== QR-КОДЫ ДЛЯ ОПЛАТЫ ==========
-# Все QR-коды теперь как PNG (фото)
+# Все QR-коды как PNG (фото)
 QR_FILES = {
     "solntsevo": {
         "type": "png",
@@ -54,7 +54,7 @@ QR_FILES = {
 }
 
 # ========== ДАННЫЕ ==========
-# Ссылки на оферты для каждого кэмпа (убраны названия юрлиц)
+# Ссылки на оферты для каждого кэмпа
 OFFER_LINKS = {
     "solntsevo": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Solntsevo_2026.docx",
     "tushino": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Tushino_2026.docx",
@@ -122,15 +122,15 @@ def format_price(price: int) -> str:
     """Форматирует цену с пробелом между тысячами и символом ₽"""
     return f"{price:,}".replace(",", " ") + "₽"
 
-# Подменю для 10 дней (смены) — БЕЗ ЦЕНЫ в кнопках, даты в скобках
+# Подменю для 10 дней (смены) — обновленный формат дат
 CAMP_SHIFTS = [
-    {"name": "смена 1", "dates": "01-12 июнь", "id": "camp_10_days_1"},
-    {"name": "смена 2", "dates": "15-26 июнь", "id": "camp_10_days_2"},
+    {"name": "смена 1", "dates": "01.06-12.06", "id": "camp_10_days_1"},
+    {"name": "смена 2", "dates": "15.06-26.06", "id": "camp_10_days_2"},
     {"name": "смена 3", "dates": "29.06-10.07", "id": "camp_10_days_3"},
-    {"name": "смена 4", "dates": "13-24 июль", "id": "camp_10_days_4"},
+    {"name": "смена 4", "dates": "13.07-24.07", "id": "camp_10_days_4"},
     {"name": "смена 5", "dates": "27.07-07.08", "id": "camp_10_days_5"},
-    {"name": "смена 6", "dates": "10-21 авг", "id": "camp_10_days_6"},
-    {"name": "смена 7", "dates": "24-27 авг", "id": "camp_10_days_7"}
+    {"name": "смена 6", "dates": "10.08-21.08", "id": "camp_10_days_6"},
+    {"name": "смена 7", "dates": "24.08-28.08", "id": "camp_10_days_7"}  # Исправлено на 24.08-28.08
 ]
 
 # ТРЕНИРОВКИ
@@ -140,10 +140,11 @@ TRAINING_SERVICES = [
     {"name": "абонемент - 10 занятий", "price": 11500, "price_per": 1150, "id": "training_10"}
 ]
 
-# ПРОЧЕЕ
+# ПРОЧЕЕ - добавлена кнопка "Индивидуальные условия"
 OTHER_SERVICES = [
     {"name": "оплата после \"пробного дня\"", "price": 39000, "id": "trial_day"},
-    {"name": "форма", "price": 4500, "id": "uniform"}
+    {"name": "форма", "price": 4500, "id": "uniform"},
+    {"name": "📝 Индивидуальные условия", "price": 0, "id": "individual"}  # Новая услуга
 ]
 
 # Хамовники — повышенные цены
@@ -155,7 +156,8 @@ KHAMOVNIKI_TRAINING = [
 
 KHAMOVNIKI_OTHER = [
     {"name": "оплата после \"пробного дня\"", "price": 65000, "id": "trial_day"},
-    {"name": "форма", "price": 4500, "id": "uniform"}
+    {"name": "форма", "price": 4500, "id": "uniform"},
+    {"name": "📝 Индивидуальные условия", "price": 0, "id": "individual"}  # Новая услуга для Хамовников
 ]
 
 # Специальная услуга для Сочи (после загрузки договора)
@@ -269,6 +271,10 @@ def get_service_name(service_id: str, camp_id: str = None) -> str:
     if service_id == "sochi_trip":
         return "🏕️ Поездка в Сочи"
     
+    # Проверяем индивидуальные условия
+    if service_id == "individual":
+        return "📝 Индивидуальные условия"
+    
     # Проверяем старые категории Сочи (для совместимости)
     for cat in SOCHI_CATEGORIES:
         for opt in cat["options"]:
@@ -315,6 +321,7 @@ def get_contract_upload_keyboard(has_files=False):
     else:
         keyboard.append([InlineKeyboardButton("⏳ Сначала загрузите файлы", callback_data="noop")])
     keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
+    keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_previous")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_sochi_categories_keyboard():
@@ -333,6 +340,7 @@ def get_camp_main_menu_keyboard(camp_id):
         [InlineKeyboardButton("🏕️ КЭМП", callback_data="service_category:camp")],
         [InlineKeyboardButton("⚽ ТРЕНИРОВКИ", callback_data="service_category:training")],
         [InlineKeyboardButton("📦 ПРОЧЕЕ", callback_data="service_category:other")],
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
         [InlineKeyboardButton("🔙 Назад к программам", callback_data="back_to_camps")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -352,6 +360,7 @@ def get_camp_options_keyboard(camp_id):
             f"1 день - {format_price(camp['base_price_1'])}",
             callback_data=f"base_service:camp_1_day"
         )],
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
         [InlineKeyboardButton("🔙 Назад", callback_data="back_to_main_menu")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -363,6 +372,7 @@ def get_camp_shifts_keyboard(camp_id):
         button_text = f"{shift['name']} ({shift['dates']})"
         keyboard.append([InlineKeyboardButton(button_text, callback_data=f"service:{shift['id']}")])
     
+    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
     keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_camp_options")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -382,6 +392,7 @@ def get_training_keyboard(camp_id):
             text += f" - {format_price(s['price'])}"
         keyboard.append([InlineKeyboardButton(text, callback_data=f"service:{s['id']}")])
     
+    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
     keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_main_menu")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -395,23 +406,29 @@ def get_other_keyboard(camp_id):
     keyboard = []
     for s in services:
         keyboard.append([InlineKeyboardButton(
-            f"{s['name']} - {format_price(s['price'])}",
+            f"{s['name']}" + (f" - {format_price(s['price'])}" if s['price'] > 0 else ""),
             callback_data=f"service:{s['id']}"
         )])
     
+    keyboard.append([InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")])
     keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_main_menu")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_payment_keyboard():
     """Кнопка оплаты"""
-    keyboard = [[InlineKeyboardButton("💳 Оплатить", callback_data="show_requisites")]]
+    keyboard = [
+        [InlineKeyboardButton("💳 Оплатить", callback_data="show_requisites")],
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
+        [InlineKeyboardButton("🔙 Назад", callback_data="back_to_services")]
+    ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_receipt_keyboard():
     """Кнопки после показа реквизитов"""
     keyboard = [
         [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")],
-        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")]
+        [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
+        [InlineKeyboardButton("🔙 Назад", callback_data="back_to_services")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -468,7 +485,7 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 reply_markup=get_sochi_pd_agree_keyboard()
             )
         else:
-            # Обычные программы: оферта + согласие на ПД (без указания юрлица)
+            # Обычные программы: оферта + согласие на ПД
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
@@ -778,13 +795,25 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     
     logger.info(f"Пользователь {user_id} выбрал услугу в программе {camp['id'] if camp else 'unknown'}")
     
-    await query.edit_message_text(
-        text=(
+    # Для индивидуальных условий показываем специальный текст
+    if service_id == "individual":
+        display_text = (
+            f"<b>📝 Вы выбрали:</b>\n"
+            f"Индивидуальные условия\n\n"
+            f"<b>📍 {camp['name']}</b>\n"
+            f"{camp['address']}\n\n"
+            f"<i>Стоимость будет рассчитана менеджером индивидуально</i>"
+        )
+    else:
+        display_text = (
             f"<b>🏟 Вы выбрали:</b>\n"
             f"{service_name} - {format_price(price)}\n\n"
             f"<b>📍 {camp['name']}</b>\n"
             f"{camp['address']}"
-        ),
+        )
+    
+    await query.edit_message_text(
+        text=display_text,
         parse_mode='HTML',
         reply_markup=get_payment_keyboard()
     )
@@ -864,7 +893,7 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await query.message.reply_text(
         text=f"📞 <b>Связь с менеджером</b>\n\n"
-             f"Телефон: 8-985-579-67-79\n\n"
+             f"Телефон: {ADMIN_PHONE}\n\n"
              f"Нажмите кнопку ниже, чтобы написать менеджеру в Telegram:",
         parse_mode='HTML',
         reply_markup=get_contact_admin_keyboard()
@@ -1052,7 +1081,7 @@ async def handle_back_to_sochi_categories(update: Update, context: ContextTypes.
     pass
 
 async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат к услугам после контакта с менеджером"""
+    """Возврат к услугам после контакта с менеджером или по кнопке назад"""
     query = update.callback_query
     await query.answer()
     
@@ -1079,6 +1108,18 @@ async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_
             parse_mode='HTML',
             reply_markup=get_camp_main_menu_keyboard(camp["id"])
         )
+
+async def handle_back_to_previous(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Возврат к предыдущему меню"""
+    query = update.callback_query
+    await query.answer()
+    
+    # Просто возвращаемся к выбору программы
+    await query.message.reply_text(
+        "🏕️ <b>Выберите программу:</b>",
+        parse_mode='HTML',
+        reply_markup=get_camps_keyboard()
+    )
 
 async def noop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Заглушка для неактивных кнопок"""
@@ -1165,6 +1206,7 @@ def main():
         application.add_handler(CallbackQueryHandler(handle_back_to_main_menu, pattern='^back_to_main_menu$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_camp_options, pattern='^back_to_camp_options$'))
         application.add_handler(CallbackQueryHandler(handle_back_to_services, pattern='^back_to_services$'))
+        application.add_handler(CallbackQueryHandler(handle_back_to_previous, pattern='^back_to_previous$'))
         application.add_handler(CallbackQueryHandler(noop, pattern='^noop$'))
         
         application.add_error_handler(error_handler)

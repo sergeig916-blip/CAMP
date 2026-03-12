@@ -11,10 +11,18 @@ from telegram.ext import (
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
 
-# ВАШ ID
+# Старый админ (для отчетов)
 ADMIN_CHAT_ID = 42038232
 ADMIN_USERNAME = "Dmitry_Kh_87"
 ADMIN_PHONE = "89855796779"
+
+# Новый менеджер (для связи и тоже для отчетов)
+MANAGER_CHAT_ID = 1457666818
+MANAGER_USERNAME = "SBall_manager"
+MANAGER_PHONE = "89855796779"
+
+# Список всех, кто получает уведомления
+NOTIFY_IDS = [ADMIN_CHAT_ID, MANAGER_CHAT_ID]  # Оба получают отчеты
 
 # Ссылка на согласие на обработку персональных данных
 PERSONAL_DATA_CONSENT_LINK = "https://sportlead.ru/media/sball/company_Soglasie_na_obrabotku_personalnyh_dannyh.docx"
@@ -130,7 +138,7 @@ CAMP_SHIFTS = [
     {"name": "смена 4", "dates": "13.07-24.07", "id": "camp_10_days_4"},
     {"name": "смена 5", "dates": "27.07-07.08", "id": "camp_10_days_5"},
     {"name": "смена 6", "dates": "10.08-21.08", "id": "camp_10_days_6"},
-    {"name": "смена 7", "dates": "24.08-28.08", "id": "camp_10_days_7"}  # Исправлено на 24.08-28.08
+    {"name": "смена 7", "dates": "24.08-28.08", "id": "camp_10_days_7"}
 ]
 
 # ТРЕНИРОВКИ
@@ -144,7 +152,7 @@ TRAINING_SERVICES = [
 OTHER_SERVICES = [
     {"name": "оплата после \"пробного дня\"", "price": 39000, "id": "trial_day"},
     {"name": "форма", "price": 4500, "id": "uniform"},
-    {"name": "📝 Индивидуальные условия", "price": 0, "id": "individual"}  # Новая услуга
+    {"name": "📝 Индивидуальные условия", "price": 0, "id": "individual"}
 ]
 
 # Хамовники — повышенные цены
@@ -157,13 +165,13 @@ KHAMOVNIKI_TRAINING = [
 KHAMOVNIKI_OTHER = [
     {"name": "оплата после \"пробного дня\"", "price": 65000, "id": "trial_day"},
     {"name": "форма", "price": 4500, "id": "uniform"},
-    {"name": "📝 Индивидуальные условия", "price": 0, "id": "individual"}  # Новая услуга для Хамовников
+    {"name": "📝 Индивидуальные условия", "price": 0, "id": "individual"}
 ]
 
 # Специальная услуга для Сочи (после загрузки договора)
 SOCHI_SERVICE = {
     "name": "🏕️ Поездка в Сочи",
-    "price": 0,  # Цена будет определена менеджером
+    "price": 0,
     "id": "sochi_trip"
 }
 
@@ -240,7 +248,7 @@ def get_service_price(service_id: str, camp_id: str = None) -> int:
     
     # Проверяем Сочи (специальная услуга)
     if service_id == "sochi_trip":
-        return 0  # Цена будет определена менеджером
+        return 0
     
     # Проверяем старые категории Сочи (для совместимости)
     for cat in SOCHI_CATEGORIES:
@@ -433,9 +441,9 @@ def get_receipt_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_contact_admin_keyboard():
-    """Кнопка связи с менеджером"""
+    """Кнопка связи с менеджером - теперь ведет на нового менеджера @SBall_manager"""
     keyboard = [
-        [InlineKeyboardButton("📞 Написать менеджеру", url=f"https://t.me/{ADMIN_USERNAME}")],
+        [InlineKeyboardButton("📞 Написать менеджеру", url=f"https://t.me/{MANAGER_USERNAME}")],
         [InlineKeyboardButton("🔙 Назад к услугам", callback_data="back_to_services")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -536,7 +544,7 @@ async def handle_sochi_email(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user = update.effective_user
     camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     
-    # Уведомление менеджеру
+    # Уведомление ВСЕМ менеджерам
     notification = (
         f"📧 НОВАЯ ЗАЯВКА (Сочи)\n"
         f"━━━━━━━━━━━━━━━\n"
@@ -550,13 +558,14 @@ async def handle_sochi_email(update: Update, context: ContextTypes.DEFAULT_TYPE)
         f"Менеджеру: отправить договор на указанный email"
     )
     
-    try:
-        await context.bot.send_message(
-            chat_id=ADMIN_CHAT_ID,
-            text=notification
-        )
-    except Exception as e:
-        logger.error(f"Ошибка при отправке уведомления менеджеру от пользователя {user_id}: {e}")
+    for chat_id in NOTIFY_IDS:
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=notification
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при отправке уведомления {chat_id}: {e}")
     
     await update.message.reply_text(
         "✅ Спасибо! Ваши данные отправлены менеджеру.\n"
@@ -618,21 +627,23 @@ async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT
               f"📄 Страница #{len(context.user_data['sochi_files'])}\n"
               f"━━━━━━━━━━━━━━━")
     
-    try:
-        if update.message.document:
-            await context.bot.send_document(
-                chat_id=ADMIN_CHAT_ID,
-                document=update.message.document.file_id,
-                caption=caption
-            )
-        else:
-            await context.bot.send_photo(
-                chat_id=ADMIN_CHAT_ID,
-                photo=update.message.photo[-1].file_id,
-                caption=caption
-            )
-    except Exception as e:
-        logger.error(f"Ошибка при отправке файла пользователем {user_id}: {e}")
+    # Отправляем ВСЕМ менеджерам
+    for chat_id in NOTIFY_IDS:
+        try:
+            if update.message.document:
+                await context.bot.send_document(
+                    chat_id=chat_id,
+                    document=update.message.document.file_id,
+                    caption=caption
+                )
+            else:
+                await context.bot.send_photo(
+                    chat_id=chat_id,
+                    photo=update.message.photo[-1].file_id,
+                    caption=caption
+                )
+        except Exception as e:
+            logger.error(f"Ошибка при отправке файла {chat_id}: {e}")
     
     await update.message.reply_text(
         f"✅ Страница {len(context.user_data['sochi_files'])} получена. "
@@ -675,13 +686,15 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
                    f"📄 Загружено страниц: {files_count}\n"
                    f"━━━━━━━━━━━━━━━")
     
-    try:
-        await context.bot.send_message(
-            chat_id=ADMIN_CHAT_ID,
-            text=notification
-        )
-    except Exception as e:
-        logger.error(f"Ошибка при уведомлении админа о пользователе {user_id}: {e}")
+    # Уведомляем ВСЕХ менеджеров
+    for chat_id in NOTIFY_IDS:
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=notification
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при уведомлении {chat_id}: {e}")
     
     # Устанавливаем специальную услугу для Сочи
     context.user_data["selected_service"] = {
@@ -864,7 +877,7 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_contact_admin(update, context)
 
 async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Связь с менеджером"""
+    """Связь с менеджером - уведомления получают оба, клиент видит нового менеджера @SBall_manager"""
     query = update.callback_query
     user = update.effective_user
     user_id = user.id
@@ -873,6 +886,7 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
     
     logger.info(f"Пользователь {user_id} запросил связь с менеджером")
     
+    # Уведомление для ВСЕХ менеджеров
     notification = (f"📞 ЗАПРОС СВЯЗИ\n"
                    f"━━━━━━━━━━━━━━━\n"
                    f"👤 Пользователь: {user.full_name}\n"
@@ -883,17 +897,20 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
                    f"📋 Услуга: {service}\n"
                    f"━━━━━━━━━━━━━━━")
     
-    try:
-        await context.bot.send_message(
-            chat_id=ADMIN_CHAT_ID,
-            text=notification
-        )
-    except Exception as e:
-        logger.error(f"Ошибка при уведомлении админа о запросе связи от {user_id}: {e}")
+    # Отправляем уведомление всем
+    for chat_id in NOTIFY_IDS:
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=notification
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при уведомлении {chat_id}: {e}")
     
+    # Показываем контакты НОВОГО менеджера
     await query.message.reply_text(
         text=f"📞 <b>Связь с менеджером</b>\n\n"
-             f"Телефон: {ADMIN_PHONE}\n\n"
+             f"Телефон: {MANAGER_PHONE}\n\n"
              f"Нажмите кнопку ниже, чтобы написать менеджеру в Telegram:",
         parse_mode='HTML',
         reply_markup=get_contact_admin_keyboard()
@@ -975,7 +992,7 @@ async def email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return RECEIPT_PHOTO
 
 async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Шаг 5: чек об оплате"""
+    """Шаг 5: чек об оплате - отправляется обоим менеджерам"""
     user = update.effective_user
     user_id = user.id
     
@@ -1014,25 +1031,31 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"━━━━━━━━━━━━━━━"
     )
     
-    try:
-        if update.message.photo:
-            await context.bot.send_photo(
-                chat_id=ADMIN_CHAT_ID,
-                photo=update.message.photo[-1].file_id,
-                caption=caption
-            )
-        else:
-            await context.bot.send_document(
-                chat_id=ADMIN_CHAT_ID,
-                document=update.message.document.file_id,
-                caption=caption
-            )
-        
+    # Отправляем чек ВСЕМ менеджерам
+    success = False
+    for chat_id in NOTIFY_IDS:
+        try:
+            if update.message.photo:
+                await context.bot.send_photo(
+                    chat_id=chat_id,
+                    photo=update.message.photo[-1].file_id,
+                    caption=caption
+                )
+            else:
+                await context.bot.send_document(
+                    chat_id=chat_id,
+                    document=update.message.document.file_id,
+                    caption=caption
+                )
+            success = True
+        except Exception as e:
+            logger.error(f"Ошибка при отправке чека {chat_id}: {e}")
+    
+    if success:
         await update.message.reply_text(
             "✅ Спасибо! Чек получен. 🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
-    except Exception as e:
-        logger.error(f"Ошибка при отправке чека админу от пользователя {user_id}: {e}")
+    else:
         await update.message.reply_text(
             "✅ Спасибо! Ваш чек получен. 🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
@@ -1144,6 +1167,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     logger.info("🚀 Запуск бота...")
     logger.info(f"👤 Администратор ID: {ADMIN_CHAT_ID}")
+    logger.info(f"👤 Менеджер ID: {MANAGER_CHAT_ID}")
+    logger.info(f"👤 Менеджер username: @{MANAGER_USERNAME}")
     
     try:
         application = Application.builder().token(BOT_TOKEN).build()

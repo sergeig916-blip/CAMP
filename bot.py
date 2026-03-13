@@ -1132,7 +1132,10 @@ def main():
             },
             fallbacks=[CommandHandler('cancel', cancel)],
             name="payment_conversation",
-            persistent=False,
+            persistent=True,  # ВАЖНО!
+            per_user=True,    # ВАЖНО!
+            per_chat=True,    # ВАЖНО!
+            per_message=False, # ВАЖНО!
         )
         
         sochi_email_conv_handler = ConversationHandler(
@@ -1142,7 +1145,10 @@ def main():
             },
             fallbacks=[CommandHandler('cancel', cancel)],
             name="sochi_email_conversation",
-            persistent=False,
+            persistent=True,
+            per_user=True,
+            per_chat=True,
+            per_message=False,
         )
         
         sochi_contract_conv_handler = ConversationHandler(
@@ -1155,7 +1161,10 @@ def main():
             },
             fallbacks=[CommandHandler('cancel', cancel)],
             name="sochi_contract_conversation",
-            persistent=False,
+            persistent=True,
+            per_user=True,
+            per_chat=True,
+            per_message=False,
         )
         
         application.add_handler(CommandHandler('start', start))

@@ -771,7 +771,7 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     elif query.data == "send_receipt":
-        # Принудительно удаляем все ключи, связанные с диалогами
+        # СНАЧАЛА принудительно завершаем старый диалог
         keys_to_remove = []
         for key in context.user_data:
             if key.endswith('_state') or 'conversation' in key.lower():
@@ -786,6 +786,7 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         logger.info(f"🔥 Принудительно завершен старый диалог для пользователя {user_id}")
         
+        # ПОТОМ отправляем сообщение о начале нового диалога
         await query.message.reply_text(
             "📝 Шаг 1 из 5\n\n"
             "Введите <b>ФИО участника</b>:",

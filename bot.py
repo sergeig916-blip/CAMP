@@ -87,7 +87,7 @@ CAMPS = [
         "id": "sochi",
         "legal_entity": "ООО ШМП",
         "type": "overnight",
-        "offer_text": "Школа мяча. Футбольный КЭМП в Сочи",
+        "offer_text": "Школа мяча. Футбольный дневной КЭМП в Сочи",
         "base_price_10": 0,
         "base_price_1": 0
     },
@@ -362,33 +362,16 @@ def get_contact_admin_keyboard():
 
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /start - ГАРАНТИРОВАННЫЙ СБРОС через фейковый /cancel"""
+    """Команда /start - ПРОСТОЙ СБРОС"""
     user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
     
     # Очищаем данные пользователя
     context.user_data.clear()
     
-    # Создаем фейковый update с командой /cancel для принудительного завершения диалога
-    class FakeMessage:
-        def __init__(self, chat_id, user_id):
-            self.chat = type('obj', (), {'id': chat_id})()
-            self.from_user = type('obj', (), {'id': user_id})()
-            self.text = '/cancel'
+    # Вызываем cancel для завершения диалога
+    await cancel(update, context)
     
-    class FakeUpdate:
-        def __init__(self, chat_id, user_id):
-            self.effective_chat = type('obj', (), {'id': chat_id})()
-            self.effective_user = type('obj', (), {'id': user_id})()
-            self.message = FakeMessage(chat_id, user_id)
-            self.callback_query = None
-    
-    fake_update = FakeUpdate(chat_id, user_id)
-    
-    # Запускаем обработчик cancel
-    await cancel(fake_update, context)
-    
-    logger.info(f"🔥🔥🔥 Пользователь {user_id} выполнил ГАРАНТИРОВАННЫЙ СБРОС")
+    logger.info(f"🔥🔥🔥 Пользователь {user_id} выполнил СБРОС")
     
     await update.message.reply_text(
         "🏕️ <b>Выберите программу:</b>",
@@ -715,6 +698,11 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     user_id = update.effective_user.id
     camp = context.user_data.get("selected_camp")
     
+    if not camp:
+        logger.error(f"camp is None for user {user_id}")
+        await query.message.reply_text("Произошла ошибка. Нажмите /start чтобы начать заново.")
+        return ConversationHandler.END
+    
     price = get_service_price(service_id, camp["id"] if camp else None)
     service_name = get_service_name(service_id, camp["id"] if camp else None)
     
@@ -724,7 +712,7 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
         "price": price
     }
     
-    logger.info(f"Пользователь {user_id} выбрал услугу в программе {camp['id'] if camp else 'unknown'}")
+    logger.info(f"Пользователь {user_id} выбрал услугу в программе {camp['id']}")
     
     if service_id == "individual":
         display_text = (

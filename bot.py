@@ -362,13 +362,29 @@ def get_contact_admin_keyboard():
 
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /start"""
+    """Команда /start - ПОЛНЫЙ СБРОС ВСЕГО на любом этапе"""
     user_id = update.effective_user.id
     
-    # Полная очистка всех данных
+    # Полная очистка всех данных пользователя
     context.user_data.clear()
     
-    logger.info(f"🔥🔥🔥 Пользователь {user_id} начал новый диалог (данные очищены)")
+    # Принудительно удаляем все возможные состояния диалогов
+    conversation_keys = ['payment_conversation_state', 'sochi_email_conversation_state', 'sochi_contract_conversation_state']
+    for key in conversation_keys:
+        if key in context.user_data:
+            del context.user_data[key]
+    
+    # Также проверяем любые ключи, содержащие 'state'
+    keys_to_remove = []
+    for key in context.user_data:
+        if 'state' in key.lower():
+            keys_to_remove.append(key)
+    
+    for key in keys_to_remove:
+        del context.user_data[key]
+        logger.info(f"🔥 Удален ключ состояния: {key}")
+    
+    logger.info(f"🔥🔥🔥 Пользователь {user_id} выполнил ПОЛНЫЙ СБРОС (можно начинать заново)")
     
     await update.message.reply_text(
         "🏕️ <b>Выберите программу:</b>",
@@ -972,7 +988,7 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "✅ Спасибо! Ваш чек получен. 🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     
-    # Очистка после завершения
+    # Полная очистка после завершения
     context.user_data.clear()
     logger.info(f"🔥🔥🔥 Пользователь {user_id} ЗАВЕРШИЛ диалог, данные очищены")
     return ConversationHandler.END
@@ -1079,7 +1095,10 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     logger.info(f"Пользователь {user_id} отменил операцию")
+    
+    # Полная очистка при отмене
     context.user_data.clear()
+    
     await update.message.reply_text(
         "Операция отменена. Нажмите /start чтобы начать заново."
     )

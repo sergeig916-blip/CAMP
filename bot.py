@@ -167,8 +167,6 @@ SOCHI_SERVICE = {
     "id": "sochi_trip"
 }
 
-SOCHI_CATEGORIES = []  # Больше не используется
-
 # ========== ЛОГИРОВАНИЕ ==========
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -364,13 +362,29 @@ def get_contact_admin_keyboard():
 
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /start - ПРИНУДИТЕЛЬНЫЙ СБРОС"""
-    # Полная очистка всех данных пользователя
-    if context.user_data:
-        context.user_data.clear()
-    
+    """Команда /start - ПОЛНЫЙ СБРОС ВСЕХ ДИАЛОГОВ"""
     user_id = update.effective_user.id
-    logger.info(f"🔥 Пользователь {user_id} начал новый диалог (все данные сброшены)")
+    
+    # Завершаем все активные диалоги для этого пользователя
+    conversation_keys = ['payment_conversation', 'sochi_email_conversation', 'sochi_contract_conversation']
+    for key in conversation_keys:
+        if key in context.user_data:
+            del context.user_data[key]
+    
+    # Полная очистка всех данных
+    context.user_data.clear()
+    
+    # Принудительно завершаем все активные ConversationHandler
+    try:
+        # Пытаемся завершить текущий диалог, если он есть
+        await context.application.conversation_handler.end_conversation(
+            update.effective_chat.id, 
+            user_id
+        )
+    except:
+        pass
+    
+    logger.info(f"🔥🔥🔥 Пользователь {user_id} начал новый диалог (ВСЕ диалоги принудительно завершены)")
     
     await update.message.reply_text(
         "🏕️ <b>Выберите программу:</b>",
@@ -817,7 +831,7 @@ async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     received_text = update.message.text
     
     # Явный лог получения сообщения
-    logger.info(f"🔥 ПОЛУЧЕНО ФИО от {user_id}: '{received_text}'")
+    logger.info(f"🔥🔥🔥 ПОЛУЧЕНО ФИО от {user_id}: '{received_text}'")
     
     context.user_data["fio_participant"] = received_text
     logger.info(f"Пользователь {user_id} ввёл ФИО участника (шаг 1/5)")
@@ -831,8 +845,12 @@ async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    context.user_data["fio_payer"] = update.message.text
+    received_text = update.message.text
+    logger.info(f"🔥 ПОЛУЧЕНО ФИО плательщика от {user_id}: '{received_text}'")
+    
+    context.user_data["fio_payer"] = received_text
     logger.info(f"Пользователь {user_id} ввёл ФИО плательщика (шаг 2/5)")
+    
     await update.message.reply_text(
         "📝 Шаг 3 из 5\n\n"
         "Введите <b>телефон для связи</b> (например, 89001234567):",
@@ -844,6 +862,8 @@ async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phone_input = update.message.text.strip()
     user_id = update.effective_user.id
+    
+    logger.info(f"🔥 ПОЛУЧЕН ТЕЛЕФОН от {user_id}: '{phone_input}'")
     
     digits = re.sub(r'\D', '', phone_input)
     if len(digits) == 11 and digits.startswith(('7', '8')):
@@ -872,6 +892,8 @@ async def email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     email = update.message.text.strip()
     user_id = update.effective_user.id
     
+    logger.info(f"🔥 ПОЛУЧЕН EMAIL от {user_id}: '{email}'")
+    
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         logger.info(f"Пользователь {user_id} ввёл некорректный email")
         await update.message.reply_text(
@@ -899,6 +921,7 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return RECEIPT_PHOTO
     
+    logger.info(f"🔥 ПОЛУЧЕН ЧЕК от {user_id}")
     logger.info(f"Пользователь {user_id} отправил чек (шаг 5/5)")
     
     fio_participant = context.user_data.get("fio_participant", "Не указано")
@@ -959,9 +982,19 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "✅ Спасибо! Ваш чек получен. 🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     
-    # Явная очистка данных после завершения
+    # ПРИНУДИТЕЛЬНАЯ ОЧИСТКА ВСЕГО
     context.user_data.clear()
-    logger.info(f"Пользователь {user_id} завершил диалог, данные очищены")
+    
+    # Пытаемся завершить диалог через application
+    try:
+        await context.application.conversation_handler.end_conversation(
+            update.effective_chat.id, 
+            user_id
+        )
+    except:
+        pass
+    
+    logger.info(f"🔥🔥🔥 Пользователь {user_id} ЗАВЕРШИЛ диалог, ВСЕ ДАННЫЕ ОЧИЩЕНЫ")
     return ConversationHandler.END
 
 async def handle_back_to_camps(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1066,10 +1099,13 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     logger.info(f"Пользователь {user_id} отменил операцию")
+    
+    # ПРИНУДИТЕЛЬНАЯ ОЧИСТКА
+    context.user_data.clear()
+    
     await update.message.reply_text(
         "Операция отменена. Нажмите /start чтобы начать заново."
     )
-    context.user_data.clear()
     return ConversationHandler.END
 
 # ========== ЗАПУСК ==========

@@ -542,8 +542,7 @@ async def handle_sochi_email(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data["sochi_email"] = email
     
     user = update.effective_user
-    camp_data = context.user_data.get("selected_camp", {})
-    camp = camp_data.get("name", "Не выбран") if camp_data else "Не выбран"
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     
     # Уведомление ВСЕМ менеджерам
     notification = (
@@ -614,8 +613,7 @@ async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT
     
     logger.info(f"Пользователь {user_id} загрузил страницу {len(context.user_data['sochi_files'])} договора")
     
-    camp_data = context.user_data.get("selected_camp", {})
-    camp = camp_data.get("name", "Не выбран") if camp_data else "Не выбран"
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     email = context.user_data.get("sochi_email", "Не указан")
     
     caption = (f"📄 Страница договора (Сочи)\n"
@@ -671,8 +669,7 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
         return SOCHI_WAIT_CONTRACT
     
     user = update.effective_user
-    camp_data = context.user_data.get("selected_camp", {})
-    camp = camp_data.get("name", "Не выбран") if camp_data else "Не выбран"
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     files_count = len(context.user_data["sochi_files"])
     email = context.user_data.get("sochi_email", "Не указан")
     
@@ -707,13 +704,12 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
     }
     
     # Сразу переходим к оплате
-    camp_address = "Парк отель Сочи"  # Адрес для Сочи
     await query.message.edit_text(
         text=(
             f"<b>✅ Договор получен!</b>\n\n"
             f"<b>🏟 Вы выбрали:</b>\n"
             f"🏕️ Поездка в Сочи\n\n"
-            f"<b>📍 {camp_address}</b>"
+            f"<b>📍 Парк отель Сочи</b>"
         ),
         parse_mode='HTML',
         reply_markup=get_payment_keyboard()
@@ -843,18 +839,10 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if query.data == "show_requisites":
         camp = context.user_data.get("selected_camp", {})
-        camp_id = camp.get("id") if camp else None
-        
-        if not camp_id:
-            await query.message.reply_text("Ошибка: программа не выбрана")
-            return
+        camp_id = camp.get("id")
         
         # Получаем данные для QR
         qr_data = QR_FILES.get(camp_id)
-        
-        if not qr_data:
-            await query.message.reply_text("Ошибка: QR-код не найден")
-            return
         
         # Текст инструкции
         text = (
@@ -889,17 +877,12 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_contact_admin(update, context)
 
 async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Связь с менеджером - ИСПРАВЛЕНО: безопасное получение данных"""
+    """Связь с менеджером - уведомления получают оба, клиент видит нового менеджера @SBall_manager"""
     query = update.callback_query
     user = update.effective_user
     user_id = user.id
-    
-    # Безопасное получение данных
-    camp_data = context.user_data.get("selected_camp")
-    camp = camp_data.get("name", "Не выбран") if camp_data else "Не выбран"
-    
-    service_data = context.user_data.get("selected_service")
-    service = service_data.get("name", "Не выбрана") if service_data else "Не выбрана"
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    service = context.user_data.get("selected_service", {}).get("name", "Не выбрана")
     
     logger.info(f"Пользователь {user_id} запросил связь с менеджером")
     
@@ -1025,13 +1008,10 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fio_payer = context.user_data.get("fio_payer", "Не указано")
     phone = context.user_data.get("phone", "Не указано")
     email = context.user_data.get("email", "Не указано")
-    
-    camp_data = context.user_data.get("selected_camp", {})
-    camp = camp_data.get("name", "Не выбран") if camp_data else "Не выбран"
-    
+    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
     service_data = context.user_data.get("selected_service", {})
-    service_name = service_data.get("name", "Не выбрана") if service_data else "Не выбрана"
-    service_price = service_data.get("price", 0) if service_data else 0
+    service_name = service_data.get("name", "Не выбрана")
+    service_price = service_data.get("price", 0)
     
     caption = (
         f"💰 НОВАЯ ОПЛАТА\n"
@@ -1100,18 +1080,11 @@ async def handle_back_to_main_menu(update: Update, context: ContextTypes.DEFAULT
     
     camp = context.user_data.get("selected_camp")
     
-    if camp:
-        await query.edit_message_text(
-            text="<b>Какая услуга вас интересует?</b>",
-            parse_mode='HTML',
-            reply_markup=get_camp_main_menu_keyboard(camp["id"])
-        )
-    else:
-        await query.edit_message_text(
-            "🏕️ <b>Выберите программу:</b>",
-            parse_mode='HTML',
-            reply_markup=get_camps_keyboard()
-        )
+    await query.edit_message_text(
+        text="<b>Какая услуга вас интересует?</b>",
+        parse_mode='HTML',
+        reply_markup=get_camp_main_menu_keyboard(camp["id"])
+    )
 
 async def handle_back_to_camp_options(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Возврат к выбору 10 дней / 1 день"""
@@ -1120,18 +1093,11 @@ async def handle_back_to_camp_options(update: Update, context: ContextTypes.DEFA
     
     camp = context.user_data.get("selected_camp")
     
-    if camp:
-        await query.edit_message_text(
-            text="<b>Выберите услугу:</b>",
-            parse_mode='HTML',
-            reply_markup=get_camp_options_keyboard(camp["id"])
-        )
-    else:
-        await query.edit_message_text(
-            "🏕️ <b>Выберите программу:</b>",
-            parse_mode='HTML',
-            reply_markup=get_camps_keyboard()
-        )
+    await query.edit_message_text(
+        text="<b>Выберите услугу:</b>",
+        parse_mode='HTML',
+        reply_markup=get_camp_options_keyboard(camp["id"])
+    )
 
 async def handle_back_to_sochi_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Возврат к категориям Сочи (больше не используется)"""
@@ -1144,14 +1110,6 @@ async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_
     
     camp = context.user_data.get("selected_camp")
     is_sochi = context.user_data.get("is_sochi", False)
-    
-    if not camp:
-        await query.message.reply_text(
-            "🏕️ <b>Выберите программу:</b>",
-            parse_mode='HTML',
-            reply_markup=get_camps_keyboard()
-        )
-        return
     
     if is_sochi:
         # Для Сочи возвращаемся к оплате

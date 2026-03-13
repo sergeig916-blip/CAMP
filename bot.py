@@ -364,12 +364,17 @@ def get_contact_admin_keyboard():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /start - ПОЛНЫЙ СБРОС ВСЕХ ДИАЛОГОВ"""
     user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
     
-    # Завершаем все активные диалоги для этого пользователя
-    conversation_keys = ['payment_conversation', 'sochi_email_conversation', 'sochi_contract_conversation']
-    for key in conversation_keys:
-        if key in context.user_data:
-            del context.user_data[key]
+    # Принудительно завершаем диалог через application
+    try:
+        await context.application.conversation_handler.end_conversation(
+            chat_id, 
+            user_id
+        )
+        logger.info(f"🔥 Принудительно завершен диалог для пользователя {user_id}")
+    except Exception as e:
+        logger.error(f"Ошибка при завершении диалога: {e}")
     
     # Полная очистка всех данных
     context.user_data.clear()
@@ -737,6 +742,9 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
 
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+    
     await query.answer()
     
     if query.data == "show_requisites":
@@ -765,10 +773,18 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     elif query.data == "send_receipt":
-        # КРИТИЧЕСКИ ВАЖНО: принудительно удаляем состояние диалога
-        if 'payment_conversation_state' in context.user_data:
-            del context.user_data['payment_conversation_state']
-            logger.info(f"🔥 Принудительно завершен старый диалог для пользователя {update.effective_user.id}")
+        # КРИТИЧЕСКИ ВАЖНО: принудительно завершаем старый диалог через application
+        try:
+            await context.application.conversation_handler.end_conversation(
+                chat_id, 
+                user_id
+            )
+            logger.info(f"🔥 Принудительно завершен старый диалог через application для {user_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при завершении диалога: {e}")
+        
+        # Полная очистка всех данных
+        context.user_data.clear()
         
         await query.message.reply_text(
             "📝 Шаг 1 из 5\n\n"

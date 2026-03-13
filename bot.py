@@ -362,29 +362,42 @@ def get_contact_admin_keyboard():
 
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /start - ПОЛНЫЙ СБРОС ВСЕГО на любом этапе"""
+    """Команда /start - ПОЛНЫЙ СБРОС через ConversationHandler"""
     user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
     
-    # Полная очистка всех данных пользователя
+    # Принудительно завершаем все активные диалоги
+    try:
+        # Завершаем диалог оплаты
+        await context.application.conversation_handler.end_conversation(
+            chat_id, user_id, 'payment_conversation'
+        )
+        logger.info(f"🔥 Завершен диалог оплаты для пользователя {user_id}")
+    except Exception as e:
+        logger.error(f"Ошибка при завершении диалога оплаты: {e}")
+    
+    try:
+        # Завершаем диалог Сочи (email)
+        await context.application.conversation_handler.end_conversation(
+            chat_id, user_id, 'sochi_email_conversation'
+        )
+        logger.info(f"🔥 Завершен диалог Сочи email для пользователя {user_id}")
+    except Exception as e:
+        logger.error(f"Ошибка при завершении диалога Сочи email: {e}")
+    
+    try:
+        # Завершаем диалог Сочи (договор)
+        await context.application.conversation_handler.end_conversation(
+            chat_id, user_id, 'sochi_contract_conversation'
+        )
+        logger.info(f"🔥 Завершен диалог Сочи договор для пользователя {user_id}")
+    except Exception as e:
+        logger.error(f"Ошибка при завершении диалога Сочи договор: {e}")
+    
+    # Полная очистка данных
     context.user_data.clear()
     
-    # Принудительно удаляем все возможные состояния диалогов
-    conversation_keys = ['payment_conversation_state', 'sochi_email_conversation_state', 'sochi_contract_conversation_state']
-    for key in conversation_keys:
-        if key in context.user_data:
-            del context.user_data[key]
-    
-    # Также проверяем любые ключи, содержащие 'state'
-    keys_to_remove = []
-    for key in context.user_data:
-        if 'state' in key.lower():
-            keys_to_remove.append(key)
-    
-    for key in keys_to_remove:
-        del context.user_data[key]
-        logger.info(f"🔥 Удален ключ состояния: {key}")
-    
-    logger.info(f"🔥🔥🔥 Пользователь {user_id} выполнил ПОЛНЫЙ СБРОС (можно начинать заново)")
+    logger.info(f"🔥🔥🔥 Пользователь {user_id} выполнил ПОЛНЫЙ СБРОС через ConversationHandler")
     
     await update.message.reply_text(
         "🏕️ <b>Выберите программу:</b>",
@@ -748,6 +761,7 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
     
     await query.answer()
     
@@ -777,7 +791,16 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     elif query.data == "send_receipt":
-        # Полная очистка перед началом нового диалога
+        # Принудительно завершаем старый диалог перед началом нового
+        try:
+            await context.application.conversation_handler.end_conversation(
+                chat_id, user_id, 'payment_conversation'
+            )
+            logger.info(f"🔥 Завершен старый диалог оплаты для пользователя {user_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при завершении старого диалога: {e}")
+        
+        # Полная очистка данных
         context.user_data.clear()
         
         logger.info(f"🔥 Начат новый диалог для пользователя {user_id}")
@@ -1094,9 +1117,18 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+    
     logger.info(f"Пользователь {user_id} отменил операцию")
     
-    # Полная очистка при отмене
+    # Принудительно завершаем диалог
+    try:
+        await context.application.conversation_handler.end_conversation(
+            chat_id, user_id, 'payment_conversation'
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при завершении диалога: {e}")
+    
     context.user_data.clear()
     
     await update.message.reply_text(

@@ -364,17 +364,16 @@ def get_contact_admin_keyboard():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /start - ПОЛНЫЙ СБРОС ВСЕХ ДИАЛОГОВ"""
     user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
     
-    # Принудительно завершаем диалог через application
-    try:
-        await context.application.conversation_handler.end_conversation(
-            chat_id, 
-            user_id
-        )
-        logger.info(f"🔥 Принудительно завершен диалог для пользователя {user_id}")
-    except Exception as e:
-        logger.error(f"Ошибка при завершении диалога: {e}")
+    # Принудительно удаляем все ключи, связанные с диалогами
+    keys_to_remove = []
+    for key in context.user_data:
+        if key.endswith('_state') or 'conversation' in key.lower():
+            keys_to_remove.append(key)
+    
+    for key in keys_to_remove:
+        del context.user_data[key]
+        logger.info(f"🔥 Удален ключ диалога: {key}")
     
     # Полная очистка всех данных
     context.user_data.clear()
@@ -743,7 +742,6 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
     
     await query.answer()
     
@@ -773,18 +771,20 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     elif query.data == "send_receipt":
-        # КРИТИЧЕСКИ ВАЖНО: принудительно завершаем старый диалог через application
-        try:
-            await context.application.conversation_handler.end_conversation(
-                chat_id, 
-                user_id
-            )
-            logger.info(f"🔥 Принудительно завершен старый диалог через application для {user_id}")
-        except Exception as e:
-            logger.error(f"Ошибка при завершении диалога: {e}")
+        # Принудительно удаляем все ключи, связанные с диалогами
+        keys_to_remove = []
+        for key in context.user_data:
+            if key.endswith('_state') or 'conversation' in key.lower():
+                keys_to_remove.append(key)
+        
+        for key in keys_to_remove:
+            del context.user_data[key]
+            logger.info(f"🔥 Удален ключ диалога: {key}")
         
         # Полная очистка всех данных
         context.user_data.clear()
+        
+        logger.info(f"🔥 Принудительно завершен старый диалог для пользователя {user_id}")
         
         await query.message.reply_text(
             "📝 Шаг 1 из 5\n\n"

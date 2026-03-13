@@ -9,7 +9,7 @@ from telegram.ext import (
 )
 
 # ========== КОНФИГУРАЦИЯ ==========
-BOT_TOKEN = "8355392266:AAHLDpU6Zn7TInLt1ULj8cgcATM0rk3NgUk"
+BOT_TOKEN = "8355392266:AAF-syWuYhISlLS3emEfoKrro3XotneV3Bg"
 
 # Старый админ (для отчетов)
 ADMIN_CHAT_ID = 42038232

@@ -22,7 +22,7 @@ MANAGER_USERNAME = "SBall_manager"
 MANAGER_PHONE = "89855796779"
 
 # Список всех, кто получает уведомления
-NOTIFY_IDS = [ADMIN_CHAT_ID, MANAGER_CHAT_ID]  # Оба получают отчеты
+NOTIFY_IDS = [ADMIN_CHAT_ID, MANAGER_CHAT_ID]
 
 # Ссылка на согласие на обработку персональных данных
 PERSONAL_DATA_CONSENT_LINK = "https://sportlead.ru/media/sball/company_Soglasie_na_obrabotku_personalnyh_dannyh.docx"
@@ -32,7 +32,6 @@ PERSONAL_DATA_CONSENT_LINK = "https://sportlead.ru/media/sball/company_Soglasie_
 (SOCHI_EMAIL, SOCHI_WAIT_CONTRACT, SOCHI_CATEGORY, SOCHI_SHIFT) = range(5, 9)
 
 # ========== QR-КОДЫ ДЛЯ ОПЛАТЫ ==========
-# Все QR-коды как PNG (фото)
 QR_FILES = {
     "solntsevo": {
         "type": "png",
@@ -62,13 +61,12 @@ QR_FILES = {
 }
 
 # ========== ДАННЫЕ ==========
-# Ссылки на оферты для каждого кэмпа
 OFFER_LINKS = {
     "solntsevo": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Solntsevo_2026.docx",
     "tushino": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Tushino_2026.docx",
     "kuzminki": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Kuzminki_2026.docx",
     "khamovniki": "https://sportlead.ru/media/sball/company_Oferta_kemp_ShMP_2026.docx",
-    "sochi": ""  # для Сочи договор не нужен, только согласие на ПД
+    "sochi": ""
 }
 
 # ========== ДАННЫЕ ПРОГРАММ ==========
@@ -127,10 +125,8 @@ CAMPS = [
 
 # ========== УСЛУГИ ==========
 def format_price(price: int) -> str:
-    """Форматирует цену с пробелом между тысячами и символом ₽"""
     return f"{price:,}".replace(",", " ") + "₽"
 
-# Подменю для 10 дней (смены) — обновленный формат дат
 CAMP_SHIFTS = [
     {"name": "смена 1", "dates": "01.06-12.06", "id": "camp_10_days_1"},
     {"name": "смена 2", "dates": "15.06-26.06", "id": "camp_10_days_2"},
@@ -141,21 +137,18 @@ CAMP_SHIFTS = [
     {"name": "смена 7", "dates": "24.08-28.08", "id": "camp_10_days_7"}
 ]
 
-# ТРЕНИРОВКИ
 TRAINING_SERVICES = [
     {"name": "тренировка - 1 шт", "price": 1600, "id": "training_1"},
     {"name": "абонемент - 5 занятий", "price": 7000, "price_per": 1400, "id": "training_5"},
     {"name": "абонемент - 10 занятий", "price": 11500, "price_per": 1150, "id": "training_10"}
 ]
 
-# ПРОЧЕЕ - добавлена кнопка "Индивидуальные условия"
 OTHER_SERVICES = [
     {"name": "оплата после \"пробного дня\"", "price": 39000, "id": "trial_day"},
     {"name": "форма", "price": 4500, "id": "uniform"},
     {"name": "📝 Индивидуальные условия", "price": 0, "id": "individual"}
 ]
 
-# Хамовники — повышенные цены
 KHAMOVNIKI_TRAINING = [
     {"name": "тренировка - 1 шт", "price": 1890, "id": "training_1"},
     {"name": "абонемент - 5 занятий", "price": 7450, "price_per": 1490, "id": "training_5"},
@@ -168,46 +161,13 @@ KHAMOVNIKI_OTHER = [
     {"name": "📝 Индивидуальные условия", "price": 0, "id": "individual"}
 ]
 
-# Специальная услуга для Сочи (после загрузки договора)
 SOCHI_SERVICE = {
     "name": "🏕️ Поездка в Сочи",
     "price": 0,
     "id": "sochi_trip"
 }
 
-# Сочи — категории и смены (оставлено для совместимости, но теперь не используется)
-SOCHI_CATEGORIES = [
-    {
-        "name": "«Спортсмен» (без сопровождения)",
-        "id": "sochi_sportsman",
-        "options": [
-            {"name": "Смена МАЙ 02-08", "price": 89990, "id": "sochi_sportsman_may"},
-            {"name": "Смена ИЮНЬ 19-27", "price": 114990, "id": "sochi_sportsman_june"},
-            {"name": "Смена ИЮЛЬ 4-11", "price": 102490, "id": "sochi_sportsman_july"},
-            {"name": "Смена АВГУСТ 1-8", "price": 102490, "id": "sochi_sportsman_august"}
-        ]
-    },
-    {
-        "name": "«Спортсмен + родитель»",
-        "id": "sochi_family",
-        "options": [
-            {"name": "Смена МАЙ 02-08", "price": 139990, "id": "sochi_family_may"},
-            {"name": "Смена ИЮНЬ 19-27", "price": 183990, "id": "sochi_family_june"},
-            {"name": "Смена ИЮЛЬ 4-11", "price": 161990, "id": "sochi_family_july"},
-            {"name": "Смена АВГУСТ 1-8", "price": 161990, "id": "sochi_family_august"}
-        ]
-    },
-    {
-        "name": "«Сопровождающий» (любой участник не принимающий участия в тренировках)",
-        "id": "sochi_accompanist",
-        "options": [
-            {"name": "Смена МАЙ 02-08", "price": 59990, "id": "sochi_accompanist_may"},
-            {"name": "Смена ИЮНЬ 19-27", "price": 77990, "id": "sochi_accompanist_june"},
-            {"name": "Смена ИЮЛЬ 4-11", "price": 68990, "id": "sochi_accompanist_july"},
-            {"name": "Смена АВГУСТ 1-8", "price": 68990, "id": "sochi_accompanist_august"}
-        ]
-    }
-]
+SOCHI_CATEGORIES = []  # Больше не используется
 
 # ========== ЛОГИРОВАНИЕ ==========
 logging.basicConfig(
@@ -219,8 +179,6 @@ logger = logging.getLogger(__name__)
 
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def get_service_price(service_id: str, camp_id: str = None) -> int:
-    """Получает цену услуги по ID"""
-    # Проверяем смены обычных кэмпов
     for shift in CAMP_SHIFTS:
         if shift["id"] == service_id:
             camp = next((c for c in CAMPS if c["id"] == camp_id), None)
@@ -228,7 +186,6 @@ def get_service_price(service_id: str, camp_id: str = None) -> int:
                 return camp["base_price_10"]
             return 39990
     
-    # Проверяем тренировки
     if camp_id == "khamovniki":
         services = KHAMOVNIKI_TRAINING
     else:
@@ -237,7 +194,6 @@ def get_service_price(service_id: str, camp_id: str = None) -> int:
         if s["id"] == service_id:
             return s["price"]
     
-    # Проверяем прочее
     if camp_id == "khamovniki":
         services = KHAMOVNIKI_OTHER
     else:
@@ -246,66 +202,44 @@ def get_service_price(service_id: str, camp_id: str = None) -> int:
         if s["id"] == service_id:
             return s["price"]
     
-    # Проверяем Сочи (специальная услуга)
     if service_id == "sochi_trip":
         return 0
-    
-    # Проверяем старые категории Сочи (для совместимости)
-    for cat in SOCHI_CATEGORIES:
-        for opt in cat["options"]:
-            if opt["id"] == service_id:
-                return opt["price"]
     
     return 0
 
 def get_service_name(service_id: str, camp_id: str = None) -> str:
-    """Получает название услуги по ID"""
-    # Проверяем смены
     for shift in CAMP_SHIFTS:
         if shift["id"] == service_id:
             return f"10 дней {shift['name']} ({shift['dates']})"
     
-    # Проверяем тренировки
     for s in TRAINING_SERVICES:
         if s["id"] == service_id:
             return s["name"]
     
-    # Проверяем прочее
     for s in OTHER_SERVICES:
         if s["id"] == service_id:
             return s["name"]
     
-    # Проверяем специальную услугу Сочи
     if service_id == "sochi_trip":
         return "🏕️ Поездка в Сочи"
     
-    # Проверяем индивидуальные условия
     if service_id == "individual":
         return "📝 Индивидуальные условия"
-    
-    # Проверяем старые категории Сочи (для совместимости)
-    for cat in SOCHI_CATEGORIES:
-        for opt in cat["options"]:
-            if opt["id"] == service_id:
-                return f"{cat['name']} - {opt['name']}"
     
     return service_id
 
 # ========== КЛАВИАТУРЫ ==========
 def get_camps_keyboard():
-    """Клавиатура выбора программы"""
     keyboard = []
     for camp in CAMPS:
         keyboard.append([InlineKeyboardButton(camp["name"], callback_data=f"camp:{camp['id']}")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_back_to_camps_keyboard():
-    """Кнопка возврата к программам"""
     keyboard = [[InlineKeyboardButton("🔙 Назад к программам", callback_data="back_to_camps")]]
     return InlineKeyboardMarkup(keyboard)
 
 def get_sochi_pd_agree_keyboard():
-    """Клавиатура согласия на ПД для Сочи"""
     keyboard = [
         [InlineKeyboardButton("✅ Даю согласие на обработку персональных данных", callback_data="sochi_pd_agree")],
         [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
@@ -314,7 +248,6 @@ def get_sochi_pd_agree_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_sochi_email_sent_keyboard():
-    """Клавиатура после отправки email"""
     keyboard = [
         [InlineKeyboardButton("✅ Я получил и подписал договор", callback_data="sochi_got_contract")],
         [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")]
@@ -322,7 +255,6 @@ def get_sochi_email_sent_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_contract_upload_keyboard(has_files=False):
-    """Кнопка загрузки договора"""
     keyboard = []
     if has_files:
         keyboard.append([InlineKeyboardButton("✅ Договор загружен", callback_data="contract_uploaded")])
@@ -332,18 +264,7 @@ def get_contract_upload_keyboard(has_files=False):
     keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_previous")])
     return InlineKeyboardMarkup(keyboard)
 
-def get_sochi_categories_keyboard():
-    """Категории Сочи (больше не используется, оставлено для совместимости)"""
-    keyboard = []
-    return InlineKeyboardMarkup(keyboard)
-
-def get_sochi_shifts_keyboard(category_id):
-    """Смены для выбранной категории Сочи (больше не используется)"""
-    keyboard = []
-    return InlineKeyboardMarkup(keyboard)
-
 def get_camp_main_menu_keyboard(camp_id):
-    """Главное меню программы (для обычных программ)"""
     keyboard = [
         [InlineKeyboardButton("🏕️ КЭМП", callback_data="service_category:camp")],
         [InlineKeyboardButton("⚽ ТРЕНИРОВКИ", callback_data="service_category:training")],
@@ -354,7 +275,6 @@ def get_camp_main_menu_keyboard(camp_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_camp_options_keyboard(camp_id):
-    """Кнопки для КЭМП (10 дней / 1 день)"""
     camp = next((c for c in CAMPS if c["id"] == camp_id), None)
     if not camp:
         return InlineKeyboardMarkup([[]])
@@ -374,7 +294,6 @@ def get_camp_options_keyboard(camp_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_camp_shifts_keyboard(camp_id):
-    """Список смен для 10 дней"""
     keyboard = []
     for shift in CAMP_SHIFTS:
         button_text = f"{shift['name']} ({shift['dates']})"
@@ -385,7 +304,6 @@ def get_camp_shifts_keyboard(camp_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_training_keyboard(camp_id):
-    """Кнопки для тренировок"""
     if camp_id == "khamovniki":
         services = KHAMOVNIKI_TRAINING
     else:
@@ -405,7 +323,6 @@ def get_training_keyboard(camp_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_other_keyboard(camp_id):
-    """Кнопки для прочего"""
     if camp_id == "khamovniki":
         services = KHAMOVNIKI_OTHER
     else:
@@ -423,7 +340,6 @@ def get_other_keyboard(camp_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_payment_keyboard():
-    """Кнопка оплаты"""
     keyboard = [
         [InlineKeyboardButton("💳 Оплатить", callback_data="show_requisites")],
         [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
@@ -432,7 +348,6 @@ def get_payment_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_receipt_keyboard():
-    """Кнопки после показа реквизитов"""
     keyboard = [
         [InlineKeyboardButton("📤 Отправить чек об оплате", callback_data="send_receipt")],
         [InlineKeyboardButton("📞 Связаться с менеджером", callback_data="contact_admin")],
@@ -441,7 +356,6 @@ def get_receipt_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_contact_admin_keyboard():
-    """Кнопка связи с менеджером - теперь ведет на нового менеджера @SBall_manager"""
     keyboard = [
         [InlineKeyboardButton("📞 Написать менеджеру", url=f"https://t.me/{MANAGER_USERNAME}")],
         [InlineKeyboardButton("🔙 Назад к услугам", callback_data="back_to_services")]
@@ -450,8 +364,14 @@ def get_contact_admin_keyboard():
 
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /start"""
-    context.user_data.clear()
+    """Команда /start - ПРИНУДИТЕЛЬНЫЙ СБРОС"""
+    # Полная очистка всех данных пользователя
+    if context.user_data:
+        context.user_data.clear()
+    
+    user_id = update.effective_user.id
+    logger.info(f"🔥 Пользователь {user_id} начал новый диалог (все данные сброшены)")
+    
     await update.message.reply_text(
         "🏕️ <b>Выберите программу:</b>",
         parse_mode='HTML',
@@ -459,7 +379,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор программы"""
     query = update.callback_query
     await query.answer()
 
@@ -474,11 +393,9 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data["selected_camp"] = camp
         context.user_data["is_sochi"] = (camp_id == "sochi")
         
-        # Получаем ссылку на оферту для этого кэмпа
         offer_link = OFFER_LINKS.get(camp_id, "https://clck.ru/3RuZKG")
         
         if camp_id == "sochi":
-            # Сочи: только согласие на ПД, без договора
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
@@ -493,7 +410,6 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 reply_markup=get_sochi_pd_agree_keyboard()
             )
         else:
-            # Обычные программы: оферта + согласие на ПД
             text = (
                 f"<b>Вы выбрали:</b>\n"
                 f"🏕️ {camp['offer_text']}\n"
@@ -513,7 +429,6 @@ async def handle_camp_selection(update: Update, context: ContextTypes.DEFAULT_TY
             )
 
 async def handle_sochi_pd_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Согласие на ПД для Сочи - переход к запросу email"""
     query = update.callback_query
     await query.answer()
     
@@ -527,7 +442,6 @@ async def handle_sochi_pd_agree(update: Update, context: ContextTypes.DEFAULT_TY
     return SOCHI_EMAIL
 
 async def handle_sochi_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получение email для Сочи"""
     email = update.message.text.strip()
     user_id = update.effective_user.id
     
@@ -542,9 +456,9 @@ async def handle_sochi_email(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data["sochi_email"] = email
     
     user = update.effective_user
-    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    camp_data = context.user_data.get("selected_camp", {})
+    camp = camp_data.get("name", "Не выбран") if camp_data else "Не выбран"
     
-    # Уведомление ВСЕМ менеджерам
     notification = (
         f"📧 НОВАЯ ЗАЯВКА (Сочи)\n"
         f"━━━━━━━━━━━━━━━\n"
@@ -577,7 +491,6 @@ async def handle_sochi_email(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return ConversationHandler.END
 
 async def handle_sochi_got_contract(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Пользователь получил и подписал договор"""
     query = update.callback_query
     await query.answer()
     
@@ -594,7 +507,6 @@ async def handle_sochi_got_contract(update: Update, context: ContextTypes.DEFAUL
     return SOCHI_WAIT_CONTRACT
 
 async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Загрузка файлов договора для Сочи"""
     user = update.effective_user
     user_id = user.id
     
@@ -613,7 +525,8 @@ async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT
     
     logger.info(f"Пользователь {user_id} загрузил страницу {len(context.user_data['sochi_files'])} договора")
     
-    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    camp_data = context.user_data.get("selected_camp", {})
+    camp = camp_data.get("name", "Не выбран") if camp_data else "Не выбран"
     email = context.user_data.get("sochi_email", "Не указан")
     
     caption = (f"📄 Страница договора (Сочи)\n"
@@ -627,7 +540,6 @@ async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT
               f"📄 Страница #{len(context.user_data['sochi_files'])}\n"
               f"━━━━━━━━━━━━━━━")
     
-    # Отправляем ВСЕМ менеджерам
     for chat_id in NOTIFY_IDS:
         try:
             if update.message.document:
@@ -654,7 +566,6 @@ async def handle_sochi_file_upload(update: Update, context: ContextTypes.DEFAULT
     return SOCHI_WAIT_CONTRACT
 
 async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Завершение загрузки договора - переход к оплате Сочи"""
     query = update.callback_query
     await query.answer()
     
@@ -669,7 +580,8 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
         return SOCHI_WAIT_CONTRACT
     
     user = update.effective_user
-    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    camp_data = context.user_data.get("selected_camp", {})
+    camp = camp_data.get("name", "Не выбран") if camp_data else "Не выбран"
     files_count = len(context.user_data["sochi_files"])
     email = context.user_data.get("sochi_email", "Не указан")
     
@@ -686,7 +598,6 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
                    f"📄 Загружено страниц: {files_count}\n"
                    f"━━━━━━━━━━━━━━━")
     
-    # Уведомляем ВСЕХ менеджеров
     for chat_id in NOTIFY_IDS:
         try:
             await context.bot.send_message(
@@ -696,14 +607,12 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
         except Exception as e:
             logger.error(f"Ошибка при уведомлении {chat_id}: {e}")
     
-    # Устанавливаем специальную услугу для Сочи
     context.user_data["selected_service"] = {
         "id": "sochi_trip",
         "name": "🏕️ Поездка в Сочи",
         "price": 0
     }
     
-    # Сразу переходим к оплате
     await query.message.edit_text(
         text=(
             f"<b>✅ Договор получен!</b>\n\n"
@@ -719,7 +628,6 @@ async def handle_contract_uploaded(update: Update, context: ContextTypes.DEFAULT
     return ConversationHandler.END
 
 async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Согласие с офертой для обычных программ"""
     query = update.callback_query
     await query.answer()
     
@@ -737,7 +645,6 @@ async def handle_agree(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def handle_service_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор категории услуг для обычных программ"""
     query = update.callback_query
     await query.answer()
     
@@ -764,7 +671,6 @@ async def handle_service_category(update: Update, context: ContextTypes.DEFAULT_
         )
 
 async def handle_base_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор базовой услуги (10 дней / 1 день)"""
     query = update.callback_query
     await query.answer()
     
@@ -778,15 +684,9 @@ async def handle_base_service(update: Update, context: ContextTypes.DEFAULT_TYPE
             reply_markup=get_camp_shifts_keyboard(camp["id"])
         )
     else:
-        # 1 день
         await handle_service_selection(update, context, service_id)
 
-async def handle_sochi_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Выбор категории в Сочи (больше не используется)"""
-    pass
-
 async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, service_id=None):
-    """Выбор конкретной услуги"""
     if not service_id:
         query = update.callback_query
         await query.answer()
@@ -808,7 +708,6 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     
     logger.info(f"Пользователь {user_id} выбрал услугу в программе {camp['id'] if camp else 'unknown'}")
     
-    # Для индивидуальных условий показываем специальный текст
     if service_id == "individual":
         display_text = (
             f"<b>📝 Вы выбрали:</b>\n"
@@ -833,7 +732,6 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
     return ConversationHandler.END
 
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка оплаты с индивидуальными QR-кодами"""
     query = update.callback_query
     await query.answer()
     
@@ -841,10 +739,8 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         camp = context.user_data.get("selected_camp", {})
         camp_id = camp.get("id")
         
-        # Получаем данные для QR
         qr_data = QR_FILES.get(camp_id)
         
-        # Текст инструкции
         text = (
             f"Для оплаты услуги, пожалуйста, воспользуйтесь нашим QR кодом:\n\n"
             f"⬇️ Для этого нужно:\n\n"
@@ -857,7 +753,6 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ Пожалуйста, не забудьте прислать нам скриншот - подтверждение оплаты в следующем сообщении🙌"
         )
         
-        # ДЛЯ ВСЕХ ПРОГРАММ ОТПРАВЛЯЕМ КАК ФОТО
         await query.message.reply_photo(
             photo=qr_data["file_id"],
             caption=text,
@@ -877,16 +772,18 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_contact_admin(update, context)
 
 async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Связь с менеджером - уведомления получают оба, клиент видит нового менеджера @SBall_manager"""
     query = update.callback_query
     user = update.effective_user
     user_id = user.id
-    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
-    service = context.user_data.get("selected_service", {}).get("name", "Не выбрана")
+    
+    camp_data = context.user_data.get("selected_camp")
+    camp = camp_data.get("name", "Не выбран") if camp_data else "Не выбран"
+    
+    service_data = context.user_data.get("selected_service")
+    service = service_data.get("name", "Не выбрана") if service_data else "Не выбрана"
     
     logger.info(f"Пользователь {user_id} запросил связь с менеджером")
     
-    # Уведомление для ВСЕХ менеджеров
     notification = (f"📞 ЗАПРОС СВЯЗИ\n"
                    f"━━━━━━━━━━━━━━━\n"
                    f"👤 Пользователь: {user.full_name}\n"
@@ -897,7 +794,6 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
                    f"📋 Услуга: {service}\n"
                    f"━━━━━━━━━━━━━━━")
     
-    # Отправляем уведомление всем
     for chat_id in NOTIFY_IDS:
         try:
             await context.bot.send_message(
@@ -907,7 +803,6 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
         except Exception as e:
             logger.error(f"Ошибка при уведомлении {chat_id}: {e}")
     
-    # Показываем контакты НОВОГО менеджера
     await query.message.reply_text(
         text=f"📞 <b>Связь с менеджером</b>\n\n"
              f"Телефон: {MANAGER_PHONE}\n\n"
@@ -919,8 +814,14 @@ async def handle_contact_admin(update: Update, context: ContextTypes.DEFAULT_TYP
 async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Шаг 1: ФИО участника"""
     user_id = update.effective_user.id
-    context.user_data["fio_participant"] = update.message.text
+    received_text = update.message.text
+    
+    # Явный лог получения сообщения
+    logger.info(f"🔥 ПОЛУЧЕНО ФИО от {user_id}: '{received_text}'")
+    
+    context.user_data["fio_participant"] = received_text
     logger.info(f"Пользователь {user_id} ввёл ФИО участника (шаг 1/5)")
+    
     await update.message.reply_text(
         "📝 Шаг 2 из 5\n\n"
         "Введите <b>ФИО плательщика</b>:",
@@ -929,7 +830,6 @@ async def fio_participant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return FIO_PAYER
 
 async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Шаг 2: ФИО плательщика"""
     user_id = update.effective_user.id
     context.user_data["fio_payer"] = update.message.text
     logger.info(f"Пользователь {user_id} ввёл ФИО плательщика (шаг 2/5)")
@@ -942,7 +842,6 @@ async def fio_payer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return PHONE
 
 async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Шаг 3: телефон"""
     phone_input = update.message.text.strip()
     user_id = update.effective_user.id
     
@@ -970,7 +869,6 @@ async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return EMAIL
 
 async def email(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Шаг 4: email"""
     email = update.message.text.strip()
     user_id = update.effective_user.id
     
@@ -992,7 +890,6 @@ async def email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return RECEIPT_PHOTO
 
 async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Шаг 5: чек об оплате - отправляется обоим менеджерам"""
     user = update.effective_user
     user_id = user.id
     
@@ -1008,10 +905,13 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fio_payer = context.user_data.get("fio_payer", "Не указано")
     phone = context.user_data.get("phone", "Не указано")
     email = context.user_data.get("email", "Не указано")
-    camp = context.user_data.get("selected_camp", {}).get("name", "Не выбран")
+    
+    camp_data = context.user_data.get("selected_camp", {})
+    camp = camp_data.get("name", "Не выбран") if camp_data else "Не выбран"
+    
     service_data = context.user_data.get("selected_service", {})
-    service_name = service_data.get("name", "Не выбрана")
-    service_price = service_data.get("price", 0)
+    service_name = service_data.get("name", "Не выбрана") if service_data else "Не выбрана"
+    service_price = service_data.get("price", 0) if service_data else 0
     
     caption = (
         f"💰 НОВАЯ ОПЛАТА\n"
@@ -1031,7 +931,6 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"━━━━━━━━━━━━━━━"
     )
     
-    # Отправляем чек ВСЕМ менеджерам
     success = False
     for chat_id in NOTIFY_IDS:
         try:
@@ -1060,11 +959,12 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "✅ Спасибо! Ваш чек получен. 🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     
+    # Явная очистка данных после завершения
     context.user_data.clear()
+    logger.info(f"Пользователь {user_id} завершил диалог, данные очищены")
     return ConversationHandler.END
 
 async def handle_back_to_camps(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат к выбору программы"""
     query = update.callback_query
     await query.answer()
     await query.edit_message_text(
@@ -1074,45 +974,59 @@ async def handle_back_to_camps(update: Update, context: ContextTypes.DEFAULT_TYP
     )
 
 async def handle_back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат в главное меню программы"""
     query = update.callback_query
     await query.answer()
     
     camp = context.user_data.get("selected_camp")
     
-    await query.edit_message_text(
-        text="<b>Какая услуга вас интересует?</b>",
-        parse_mode='HTML',
-        reply_markup=get_camp_main_menu_keyboard(camp["id"])
-    )
+    if camp:
+        await query.edit_message_text(
+            text="<b>Какая услуга вас интересует?</b>",
+            parse_mode='HTML',
+            reply_markup=get_camp_main_menu_keyboard(camp["id"])
+        )
+    else:
+        await query.edit_message_text(
+            "🏕️ <b>Выберите программу:</b>",
+            parse_mode='HTML',
+            reply_markup=get_camps_keyboard()
+        )
 
 async def handle_back_to_camp_options(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат к выбору 10 дней / 1 день"""
     query = update.callback_query
     await query.answer()
     
     camp = context.user_data.get("selected_camp")
     
-    await query.edit_message_text(
-        text="<b>Выберите услугу:</b>",
-        parse_mode='HTML',
-        reply_markup=get_camp_options_keyboard(camp["id"])
-    )
-
-async def handle_back_to_sochi_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат к категориям Сочи (больше не используется)"""
-    pass
+    if camp:
+        await query.edit_message_text(
+            text="<b>Выберите услугу:</b>",
+            parse_mode='HTML',
+            reply_markup=get_camp_options_keyboard(camp["id"])
+        )
+    else:
+        await query.edit_message_text(
+            "🏕️ <b>Выберите программу:</b>",
+            parse_mode='HTML',
+            reply_markup=get_camps_keyboard()
+        )
 
 async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат к услугам после контакта с менеджером или по кнопке назад"""
     query = update.callback_query
     await query.answer()
     
     camp = context.user_data.get("selected_camp")
     is_sochi = context.user_data.get("is_sochi", False)
     
+    if not camp:
+        await query.message.reply_text(
+            "🏕️ <b>Выберите программу:</b>",
+            parse_mode='HTML',
+            reply_markup=get_camps_keyboard()
+        )
+        return
+    
     if is_sochi:
-        # Для Сочи возвращаемся к оплате
         service_data = context.user_data.get("selected_service", {})
         if service_data:
             await query.message.reply_text(
@@ -1133,11 +1047,9 @@ async def handle_back_to_services(update: Update, context: ContextTypes.DEFAULT_
         )
 
 async def handle_back_to_previous(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат к предыдущему меню"""
     query = update.callback_query
     await query.answer()
     
-    # Просто возвращаемся к выбору программы
     await query.message.reply_text(
         "🏕️ <b>Выберите программу:</b>",
         parse_mode='HTML',
@@ -1145,16 +1057,13 @@ async def handle_back_to_previous(update: Update, context: ContextTypes.DEFAULT_
     )
 
 async def noop(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Заглушка для неактивных кнопок"""
     query = update.callback_query
     await query.answer("Сначала выполните предыдущие действия", show_alert=True)
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик ошибок"""
     logger.error(f"Ошибка: {context.error}")
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена операции"""
     user_id = update.effective_user.id
     logger.info(f"Пользователь {user_id} отменил операцию")
     await update.message.reply_text(
@@ -1173,7 +1082,6 @@ def main():
     try:
         application = Application.builder().token(BOT_TOKEN).build()
         
-        # ConversationHandler для оплаты (5 шагов)
         payment_conv_handler = ConversationHandler(
             entry_points=[CallbackQueryHandler(handle_payment, pattern='^send_receipt$')],
             states={
@@ -1188,7 +1096,6 @@ def main():
             persistent=False,
         )
         
-        # ConversationHandler для email в Сочи
         sochi_email_conv_handler = ConversationHandler(
             entry_points=[CallbackQueryHandler(handle_sochi_pd_agree, pattern='^sochi_pd_agree$')],
             states={
@@ -1199,7 +1106,6 @@ def main():
             persistent=False,
         )
         
-        # ConversationHandler для загрузки договора Сочи
         sochi_contract_conv_handler = ConversationHandler(
             entry_points=[CallbackQueryHandler(handle_sochi_got_contract, pattern='^sochi_got_contract$')],
             states={
@@ -1213,14 +1119,12 @@ def main():
             persistent=False,
         )
         
-        # Добавляем обработчики
         application.add_handler(CommandHandler('start', start))
         application.add_handler(CommandHandler('cancel', cancel))
         application.add_handler(payment_conv_handler)
         application.add_handler(sochi_email_conv_handler)
         application.add_handler(sochi_contract_conv_handler)
         
-        # CallbackQueryHandler
         application.add_handler(CallbackQueryHandler(handle_camp_selection, pattern='^camp:'))
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))
         application.add_handler(CallbackQueryHandler(handle_service_category, pattern='^service_category:'))

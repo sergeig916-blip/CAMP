@@ -362,42 +362,33 @@ def get_contact_admin_keyboard():
 
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /start - ПОЛНЫЙ СБРОС через ConversationHandler"""
+    """Команда /start - ГАРАНТИРОВАННЫЙ СБРОС через фейковый /cancel"""
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
     
-    # Принудительно завершаем все активные диалоги
-    try:
-        # Завершаем диалог оплаты
-        await context.application.conversation_handler.end_conversation(
-            chat_id, user_id, 'payment_conversation'
-        )
-        logger.info(f"🔥 Завершен диалог оплаты для пользователя {user_id}")
-    except Exception as e:
-        logger.error(f"Ошибка при завершении диалога оплаты: {e}")
-    
-    try:
-        # Завершаем диалог Сочи (email)
-        await context.application.conversation_handler.end_conversation(
-            chat_id, user_id, 'sochi_email_conversation'
-        )
-        logger.info(f"🔥 Завершен диалог Сочи email для пользователя {user_id}")
-    except Exception as e:
-        logger.error(f"Ошибка при завершении диалога Сочи email: {e}")
-    
-    try:
-        # Завершаем диалог Сочи (договор)
-        await context.application.conversation_handler.end_conversation(
-            chat_id, user_id, 'sochi_contract_conversation'
-        )
-        logger.info(f"🔥 Завершен диалог Сочи договор для пользователя {user_id}")
-    except Exception as e:
-        logger.error(f"Ошибка при завершении диалога Сочи договор: {e}")
-    
-    # Полная очистка данных
+    # Очищаем данные пользователя
     context.user_data.clear()
     
-    logger.info(f"🔥🔥🔥 Пользователь {user_id} выполнил ПОЛНЫЙ СБРОС через ConversationHandler")
+    # Создаем фейковый update с командой /cancel для принудительного завершения диалога
+    class FakeMessage:
+        def __init__(self, chat_id, user_id):
+            self.chat = type('obj', (), {'id': chat_id})()
+            self.from_user = type('obj', (), {'id': user_id})()
+            self.text = '/cancel'
+    
+    class FakeUpdate:
+        def __init__(self, chat_id, user_id):
+            self.effective_chat = type('obj', (), {'id': chat_id})()
+            self.effective_user = type('obj', (), {'id': user_id})()
+            self.message = FakeMessage(chat_id, user_id)
+            self.callback_query = None
+    
+    fake_update = FakeUpdate(chat_id, user_id)
+    
+    # Запускаем обработчик cancel
+    await cancel(fake_update, context)
+    
+    logger.info(f"🔥🔥🔥 Пользователь {user_id} выполнил ГАРАНТИРОВАННЫЙ СБРОС")
     
     await update.message.reply_text(
         "🏕️ <b>Выберите программу:</b>",
@@ -791,15 +782,6 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     elif query.data == "send_receipt":
-        # Принудительно завершаем старый диалог перед началом нового
-        try:
-            await context.application.conversation_handler.end_conversation(
-                chat_id, user_id, 'payment_conversation'
-            )
-            logger.info(f"🔥 Завершен старый диалог оплаты для пользователя {user_id}")
-        except Exception as e:
-            logger.error(f"Ошибка при завершении старого диалога: {e}")
-        
         # Полная очистка данных
         context.user_data.clear()
         
@@ -1117,18 +1099,9 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
-    
     logger.info(f"Пользователь {user_id} отменил операцию")
     
-    # Принудительно завершаем диалог
-    try:
-        await context.application.conversation_handler.end_conversation(
-            chat_id, user_id, 'payment_conversation'
-        )
-    except Exception as e:
-        logger.error(f"Ошибка при завершении диалога: {e}")
-    
+    # Полная очистка при отмене
     context.user_data.clear()
     
     await update.message.reply_text(

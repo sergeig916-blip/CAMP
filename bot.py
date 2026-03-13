@@ -374,16 +374,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Полная очистка всех данных
     context.user_data.clear()
     
-    # Принудительно завершаем все активные ConversationHandler
-    try:
-        # Пытаемся завершить текущий диалог, если он есть
-        await context.application.conversation_handler.end_conversation(
-            update.effective_chat.id, 
-            user_id
-        )
-    except:
-        pass
-    
     logger.info(f"🔥🔥🔥 Пользователь {user_id} начал новый диалог (ВСЕ диалоги принудительно завершены)")
     
     await update.message.reply_text(
@@ -775,6 +765,11 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     elif query.data == "send_receipt":
+        # КРИТИЧЕСКИ ВАЖНО: принудительно удаляем состояние диалога
+        if 'payment_conversation_state' in context.user_data:
+            del context.user_data['payment_conversation_state']
+            logger.info(f"🔥 Принудительно завершен старый диалог для пользователя {update.effective_user.id}")
+        
         await query.message.reply_text(
             "📝 Шаг 1 из 5\n\n"
             "Введите <b>ФИО участника</b>:",
@@ -984,15 +979,6 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # ПРИНУДИТЕЛЬНАЯ ОЧИСТКА ВСЕГО
     context.user_data.clear()
-    
-    # Пытаемся завершить диалог через application
-    try:
-        await context.application.conversation_handler.end_conversation(
-            update.effective_chat.id, 
-            user_id
-        )
-    except:
-        pass
     
     logger.info(f"🔥🔥🔥 Пользователь {user_id} ЗАВЕРШИЛ диалог, ВСЕ ДАННЫЕ ОЧИЩЕНЫ")
     return ConversationHandler.END

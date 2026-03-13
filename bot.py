@@ -87,7 +87,7 @@ CAMPS = [
         "id": "sochi",
         "legal_entity": "ООО ШМП",
         "type": "overnight",
-        "offer_text": "Школа мяча. Футбольный дневной КЭМП в Сочи",
+        "offer_text": "Школа мяча. Футбольный КЭМП в Сочи",
         "base_price_10": 0,
         "base_price_1": 0
     },
@@ -364,14 +364,21 @@ def get_contact_admin_keyboard():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /start - ПРОСТОЙ СБРОС"""
     user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
     
     # Очищаем данные пользователя
     context.user_data.clear()
     
-    # Вызываем cancel для завершения диалога
-    await cancel(update, context)
+    # Пытаемся завершить диалог (если есть)
+    try:
+        # Пытаемся завершить диалог оплаты
+        await context.application.conversation_handler.end_conversation(
+            chat_id, user_id, 'payment_conversation'
+        )
+    except Exception as e:
+        logger.debug(f"Не удалось завершить диалог оплаты: {e}")
     
-    logger.info(f"🔥🔥🔥 Пользователь {user_id} выполнил СБРОС")
+    logger.info(f"🔥 Пользователь {user_id} начал заново")
     
     await update.message.reply_text(
         "🏕️ <b>Выберите программу:</b>",
@@ -740,7 +747,6 @@ async def handle_service_selection(update: Update, context: ContextTypes.DEFAULT
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
     
     await query.answer()
     
@@ -770,7 +776,7 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
     elif query.data == "send_receipt":
-        # Полная очистка данных
+        # Очищаем данные перед началом нового диалога
         context.user_data.clear()
         
         logger.info(f"🔥 Начат новый диалог для пользователя {user_id}")
@@ -981,7 +987,7 @@ async def receipt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "✅ Спасибо! Ваш чек получен. 🌟 Спасибо, что выбираете Школа мяча! 🌟"
         )
     
-    # Полная очистка после завершения
+    # Очищаем данные после завершения
     context.user_data.clear()
     logger.info(f"🔥🔥🔥 Пользователь {user_id} ЗАВЕРШИЛ диалог, данные очищены")
     return ConversationHandler.END
@@ -1088,10 +1094,7 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     logger.info(f"Пользователь {user_id} отменил операцию")
-    
-    # Полная очистка при отмене
     context.user_data.clear()
-    
     await update.message.reply_text(
         "Операция отменена. Нажмите /start чтобы начать заново."
     )

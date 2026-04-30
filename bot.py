@@ -78,7 +78,7 @@ CAMPS = [
         "legal_entity": "ООО ШМП",
         "type": "city",
         "offer_text": "Школа мяча. Футбольный дневной КЭМП в Солнцево",
-        "base_price_10": 39990,
+        "base_price_10": 43000,
         "base_price_1": 5990
     },
     {
@@ -98,7 +98,7 @@ CAMPS = [
         "legal_entity": "ИП Зубанова / счет ШМП",
         "type": "city",
         "offer_text": "Школа мяча. Футбольный дневной КЭМП в Тушино",
-        "base_price_10": 39990,
+        "base_price_10": 44990,
         "base_price_1": 5990
     },
     {
@@ -108,7 +108,7 @@ CAMPS = [
         "legal_entity": "ИП Зубанова / счёт ДХ",
         "type": "city",
         "offer_text": "Школа мяча. Футбольный дневной КЭМП в Кузьминках",
-        "base_price_10": 39990,
+        "base_price_10": 44990,
         "base_price_1": 5990
     },
     {
@@ -118,7 +118,7 @@ CAMPS = [
         "legal_entity": "ООО ШМП",
         "type": "city",
         "offer_text": "Школа мяча. Футбольный дневной КЭМП в Хамовниках",
-        "base_price_10": 69990,
+        "base_price_10": 72990,
         "base_price_1": 7900
     }
 ]

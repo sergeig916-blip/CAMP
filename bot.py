@@ -1164,8 +1164,8 @@ def main():
         application.add_handler(sochi_email_conv_handler)
         application.add_handler(sochi_contract_conv_handler)
 
-# ВРЕМЕННО - для получения file_id нового QR-кода
-application.add_handler(MessageHandler(filters.PHOTO, get_qr_file_id))
+        # ВРЕМЕННО - для получения file_id нового QR-кода
+        application.add_handler(MessageHandler(filters.PHOTO, get_qr_file_id))
         
         application.add_handler(CallbackQueryHandler(handle_camp_selection, pattern='^camp:'))
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))

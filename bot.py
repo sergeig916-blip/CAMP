@@ -1100,6 +1100,17 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
+# ========== ВРЕМЕННЫЙ ОБРАБОТЧИК ДЛЯ ПОЛУЧЕНИЯ FILE_ID ==========
+async def get_qr_file_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Временный обработчик - показывает file_id отправленных фото"""
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+        await update.message.reply_text(
+            f"✅ File ID для QR:\n<code>{file_id}</code>",
+            parse_mode='HTML'
+        )
+        logger.info(f"Получен file_id: {file_id}")
+
 # ========== ЗАПУСК ==========
 def main():
     logger.info("🚀 Запуск бота...")
@@ -1152,6 +1163,9 @@ def main():
         application.add_handler(payment_conv_handler)
         application.add_handler(sochi_email_conv_handler)
         application.add_handler(sochi_contract_conv_handler)
+
+# ВРЕМЕННО - для получения file_id нового QR-кода
+application.add_handler(MessageHandler(filters.PHOTO, get_qr_file_id))
         
         application.add_handler(CallbackQueryHandler(handle_camp_selection, pattern='^camp:'))
         application.add_handler(CallbackQueryHandler(handle_agree, pattern='^agree$'))

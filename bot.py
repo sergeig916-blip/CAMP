@@ -62,7 +62,7 @@ QR_FILES = {
 
 # ========== ДАННЫЕ ==========
 OFFER_LINKS = {
-    "solntsevo": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Solntsevo_2026.docx",
+    "solntsevo": "https://sportlead.ru/media/sball/company_company_Oferta_kemp_IP_Kholnov_Solntsevo_2026_1.pdf",
     "tushino": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Tushino_2026.docx",
     "kuzminki": "https://sportlead.ru/media/sball/company_Oferta_kemp_IP_Zubanova_Kuzminki_2026.docx",
     "khamovniki": "https://sportlead.ru/media/sball/company_Oferta_kemp_ShMP_2026.docx",
